@@ -16,12 +16,20 @@ class CameraDriver(object):
         self.resolution = res
         self.isEnabled = False
 
+        self.frameNum = 0
+
         self.targetLocked = False
 
         self.tracker = cv2.TrackerKCF_create()
         self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
 
+    @staticmethod
+    def saveImage(img, imPath):
+        im = Image.fromarray(img)
+        im.save(os.path.join(cfg.imgSaveDir, imPath))
+    
+    
     def start(self):
         self.capture = cv2.VideoCapture(0)
 
@@ -33,11 +41,16 @@ class CameraDriver(object):
         self.capture.release()
 
 
-    def findTarget(self):
+    def findTargets(self):
         frame = self.getFrame()
+
         fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,1.2,6)
-        upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
+        # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
+
+
 
     def getFrame(self):
-        frame = self.capture.read()
-        return frame
+        _, frame = self.capture.read()
+        grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        return grayFrame

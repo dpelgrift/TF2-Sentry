@@ -7,19 +7,21 @@ panDefaultVelDegPerSec2 = 200
 
 flywheelMinSpoolTimeSec = 2
 
-tiltMinPwm = 50.0
-tiltMaxPwm = 100.0
+tiltMinPwm = 1.0/1000
+tiltMaxPwm = 2.0/1000
 tiltDefaultCenterPwm = 75
 
 tiltDefaultVelPwmPerSec = 5
 tiltDefaultAccPwmPerSec2 = 10
 
 pusherReverseDurationSec = 3
-pusherPwm = 100
+pusherMinPwm = 0
+pusherMaxPwm = 100
 
 hopperLeadingBufferSec = 1
 hopperLaggingBufferSec = 1
-hopperPwm = 100
+hopperMinPwm = 0
+hopperMaxPwm = 100
 
 """ PINOUTS """
 ledPin = 17
@@ -41,11 +43,12 @@ allowedProximityPixels = 10
 leadConstPixels = 15
 
 """ PATHS """
-audioPath = '/home/pi/audio'
-imgSavePath = '/home/pi/imgs'
-vidSavePath = '/home/pi/vids'
+audioDir = '/home/pi/audio'
+imgSaveDir = '/home/pi/imgs'
+vidSaveDir = '/home/pi/vids'
 
 """ DEBUG """
 DEBUG_MODE = True
+TEST_MODE = False
 SAVE_IMGS = True
 SAVE_VID = True
