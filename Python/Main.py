@@ -5,7 +5,8 @@ import argparse
 import Config as cfg
 import subprocess as sp
 import CameraDriver
-
+import MotorDriver
+from TestSuite import *
 
 
 def main():
@@ -17,22 +18,33 @@ def main():
         print("Serial connection failed")
         while True:
             1
-
+    print("Serial connection successful")
 
     # Create Camera Handler & Verify Connection
     cam = CameraDriver()
     cam.start()
     # Test video capture by trying to read a frame
+    ret = cam.capture.read()
+    if not ret:
+        print("Camera connection failed")
+        while True:
+            1
+    print("Camera connection successful")
 
     # Create Motor Driver
-
+    motors = MotorDriver()
     # Configure itsybitsy & verify mpu6050 connection
-
-    
+    motors.configItsybitsy()
 
     # Zero out tilt
+    motors.zero()
+
+    # If specified, enter testing mode
+    if cfg.TEST_MODE:
+        testingMode(motors)
 
     # Enter scanning mode
+
 
 
 def verifySerial(sd):
