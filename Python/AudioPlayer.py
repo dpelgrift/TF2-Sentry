@@ -1,5 +1,5 @@
 import Config as cfg
-# import playsound
+import playsound
 
 
 class AudioPlayer(object):
@@ -8,9 +8,7 @@ class AudioPlayer(object):
         self.scanSound = 'Sentry_scan.wav'
 
     def playScanSound(self):
-        print()
-        # playsound(cfg.audioDir + self.scanSound)
+        playsound(cfg.audioDir + self.scanSound)
 
     def playSpotSound(self):
-        print()
-        # playsound(cfg.audioDir + self.spotSound)
+        playsound(cfg.audioDir + self.spotSound)
