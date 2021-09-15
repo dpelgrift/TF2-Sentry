@@ -49,6 +49,6 @@ vidSaveDir = '/home/pi/vids'
 
 """ DEBUG """
 DEBUG_MODE = True
-TEST_MODE = False
+TEST_MODE = True
 SAVE_IMGS = True
 SAVE_VID = True
