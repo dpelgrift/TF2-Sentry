@@ -5,23 +5,16 @@ import serial.tools.list_ports
 import Config as cfg
 import time
 
-VIDPID = '/dev/serial0'
+
 BAUD = 250000
 S_TIMEOUT = 0.2   # Serial command timeout
 R_TIMEOUT = 10  # Wait for reponse timeout
 
 class SerialDevice(object):
     def __init__(self):
-        self.comport = self.get_com_port()
-        self.serial_dev = serial.Serial(self.comport, BAUD, timeout=S_TIMEOUT)
+        # self.comport = self.get_com_port()
+        self.serial_dev = serial.Serial('/dev/serial0', BAUD, timeout=S_TIMEOUT)
 
-    def get_com_port(self):
-        all_ports = list(serial.tools.list_ports.comports())
-        print("Available COM Ports")
-        print(all_ports)
-        for port in all_ports:
-            if VIDPID in port[2]:
-                return port[0]
 
     def command(self, data_string):
         self.serial_dev.flush()
