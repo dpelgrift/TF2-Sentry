@@ -59,3 +59,7 @@ def verifySerial(sd):
             else:
                 print("Serial Response:" + resp)
     return False
+
+
+if __name__=='__main__':
+    main()
