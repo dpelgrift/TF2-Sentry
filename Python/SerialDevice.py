@@ -5,7 +5,7 @@ import serial.tools.list_ports
 import Config as cfg
 import time
 
-VIDPID = '239A:8022'
+VIDPID = '/dev/serial0'
 BAUD = 250000
 S_TIMEOUT = 0.2   # Serial command timeout
 R_TIMEOUT = 10  # Wait for reponse timeout
@@ -17,6 +17,8 @@ class SerialDevice(object):
 
     def get_com_port(self):
         all_ports = list(serial.tools.list_ports.comports())
+        print("Available COM Ports")
+        print(all_ports)
         for port in all_ports:
             if VIDPID in port[2]:
                 return port[0]
