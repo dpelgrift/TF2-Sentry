@@ -1,11 +1,10 @@
 from CameraDriver import CameraDriver
-import SerialDevice
+from SerialDevice import *
 import time
-import argparse
 import Config as cfg
 import subprocess as sp
-import CameraDriver
-import MotorDriver
+from CameraDriver import *
+from MotorDriver import *
 from TestSuite import *
 
 
