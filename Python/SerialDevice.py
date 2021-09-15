@@ -14,7 +14,7 @@ class SerialDevice(object):
     def __init__(self):
         # self.comport = self.get_com_port()
         self.serial_dev = serial.Serial('/dev/serial0', BAUD, timeout=S_TIMEOUT)
-
+        self.R_TIMEOUT= R_TIMEOUT
 
     def command(self, data_string):
         self.serial_dev.flush()

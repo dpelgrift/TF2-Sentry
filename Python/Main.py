@@ -13,7 +13,7 @@ def main():
     sd = SerialDevice()
     isVerified = verifySerial(sd)
 
-    if not isVerified:
+    if not isVerified and not cfg.TEST_MODE:
         print("Serial connection failed")
         while True:
             1
