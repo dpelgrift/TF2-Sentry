@@ -20,7 +20,7 @@ class CameraDriver(object):
 
         self.targetLocked = False
 
-        self.tracker = cv2.TrackerKCF_create()
+        #self.tracker = cv2.TrackerKCF_create()
         self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
 

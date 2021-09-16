@@ -11,9 +11,13 @@ from TestSuite import *
 def main():
     # Initialize/verify serial connection
     sd = SerialDevice()
-    isVerified = verifySerial(sd)
 
-    if not isVerified and not cfg.TEST_MODE:
+    if cfg.TEST_MODE:
+        isVerified = True
+    else:
+        isVerified = verifySerial(sd)
+
+    if not isVerified:
         print("Serial connection failed")
         while True:
             1
@@ -31,9 +35,9 @@ def main():
     print("Camera connection successful")
 
     # Create Motor Driver
-    motors = MotorDriver()
+    motors = MotorDriver(sd)
     # Configure itsybitsy & verify mpu6050 connection
-    motors.configItsybitsy()
+    #motors.configItsybitsy()
 
     # Zero out tilt
     motors.zero()
