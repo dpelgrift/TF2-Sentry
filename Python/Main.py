@@ -44,7 +44,7 @@ def main():
 
     # If specified, enter testing mode
     if cfg.TEST_MODE:
-        testingMode(motors)
+        testingMode(motors,sd)
 
     # Enter scanning mode
 

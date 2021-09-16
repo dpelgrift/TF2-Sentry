@@ -43,9 +43,9 @@ allowedProximityPixels = 10
 leadConstPixels = 15
 
 """ PATHS """
-audioDir = '/home/pi/audio'
-imgSaveDir = '/home/pi/imgs'
-vidSaveDir = '/home/pi/vids'
+audioDir = '/home/pi/audio/'
+imgSaveDir = '/home/pi/imgs/'
+vidSaveDir = '/home/pi/vids/'
 
 """ DEBUG """
 DEBUG_MODE = True
