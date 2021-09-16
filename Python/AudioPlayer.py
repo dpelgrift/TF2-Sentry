@@ -1,14 +1,16 @@
 import Config as cfg
-import os
-
+import playsound
+import simpleaudio as sa
 
 class AudioPlayer(object):
     def __init__(self):
-        self.spotSound = 'Sentry_spot.wav'
-        self.scanSound = 'Sentry_scan.wav'
+        self.spotSound = sa.WaveObject.from_wave_file(cfg.audioDir + "Sentry_spot.wav")
+        self.scanSound = sa.WaveObject.from_wave_file(cfg.audioDir + "Sentry_scan.wav")
 
     def playScanSound(self):
-        os.system("mpg123 " + cfg.audioDir + self.scanSound)
+        play_obj = self.spotSound.play()
+        # playsound(cfg.audioDir + self.scanSound)
 
     def playSpotSound(self):
-        os.system("mpg123 " + cfg.audioDir + self.spotSound)
+        play_obj = self.scanSound.play()
+        # playsound(cfg.audioDir + self.spotSound)
