@@ -1,5 +1,5 @@
 import Config as cfg
-import AudioPlayer
+from AudioPlayer import *
 import time
 
 testModeCommandString = "1: Test audio, 2: Test Hopper, 3: Test pusher\n 4: Test flywheels, 5: Test serial connection, 6: Test IMU\n7: Test tilt servo, 8: Test pan stepper, 9: Test firing sequence"

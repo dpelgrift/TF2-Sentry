@@ -15,13 +15,13 @@ tiltDefaultVelPwmPerSec = 5
 tiltDefaultAccPwmPerSec2 = 10
 
 pusherReverseDurationSec = 3
-pusherMinPwm = 0
-pusherMaxPwm = 100
+pusherMinPwm = 1.0/1000
+pusherMaxPwm = 2.0/1000
 
 hopperLeadingBufferSec = 1
 hopperLaggingBufferSec = 1
-hopperMinPwm = 0
-hopperMaxPwm = 100
+hopperMinPwm = 1.0/1000
+hopperMaxPwm = 2.0/1000
 
 """ PINOUTS """
 ledPin = 17
@@ -35,9 +35,9 @@ videoResolution = (640,480)
 targetCenter = (320,240)
 
 """ OPENCV PARAMS """
-trackKp = 1500
-trackKi = 350
-trackKd = 5
+kp = 1500
+ki = 350
+kd = 5
 
 allowedProximityPixels = 10
 leadConstPixels = 15
