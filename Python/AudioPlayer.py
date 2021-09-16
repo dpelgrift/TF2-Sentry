@@ -1,16 +1,23 @@
 import Config as cfg
-import playsound
-import simpleaudio as sa
+#import playsound
+import pygame
 
 class AudioPlayer(object):
     def __init__(self):
-        self.spotSound = sa.WaveObject.from_wave_file(cfg.audioDir + "Sentry_spot.wav")
-        self.scanSound = sa.WaveObject.from_wave_file(cfg.audioDir + "Sentry_scan.wav")
+        print()
 
     def playScanSound(self):
-        play_obj = self.spotSound.play()
-        # playsound(cfg.audioDir + self.scanSound)
+        #play_obj = self.spotSound.play()
+        pygame.mixer.init()
+        pygame.mixer.music.load(cfg.audioDir + "Sentry_scan.wav")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            continue
 
     def playSpotSound(self):
-        play_obj = self.scanSound.play()
-        # playsound(cfg.audioDir + self.spotSound)
+        #play_obj = self.scanSound.play()
+        pygame.mixer.init()
+        pygame.mixer.music.load(cfg.audioDir + "Sentry_spot.wav")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            continue
