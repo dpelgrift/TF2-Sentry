@@ -14,6 +14,7 @@ def main():
 
     if cfg.TEST_MODE:
         isVerified = True
+        print("Test mode active, bypassing serial verification")
     else:
         isVerified = verifySerial(sd)
 
@@ -37,7 +38,7 @@ def main():
     # Create Motor Driver
     motors = MotorDriver(sd)
     # Configure itsybitsy & verify mpu6050 connection
-    #motors.configItsybitsy()
+    motors.configItsybitsy()
 
     # Zero out tilt
     motors.zero()
@@ -50,18 +51,8 @@ def main():
 
 
 
-def verifySerial(sd):
-    sd.serial_dev.flush()
-    sd.serial_dev.write(('marco\n').encode('ascii'))
-    tnow = time.time()
-    while time.time() - tnow < sd.R_TIMEOUT:
-        if (sd.serial_dev.inWaiting() > 0):  
-            resp = sd.serial_dev.readline().decode('ascii')
-            if 'polo' in resp:
-                return True
-            else:
-                print("Serial Response:" + resp)
-    return False
+
+
 
 
 if __name__=='__main__':

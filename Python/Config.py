@@ -1,4 +1,7 @@
 """ MECHANICAL PARAMS """
+scanSpeedDegPerSec = 50
+scanAngleDeg = 150
+
 panStepsPerRev = 400
 panTravelWidthDeg = 180
 
@@ -21,7 +24,7 @@ pusherMaxPwm = 2.0/1000
 hopperLeadingBufferSec = 1
 hopperLaggingBufferSec = 1
 hopperMinPwm = 1.0/1000
-hopperMaxPwm = 2.0/1000
+hopperMaxPwm = 3.0/1000
 
 """ PINOUTS """
 ledPin = 17
@@ -32,15 +35,18 @@ hopperPin = 13
 
 """ CAMERA """
 videoResolution = (640,480)
-targetCenter = (320,240)
+hTargetCenter = 240
+wTargetCenter = 320
 
-""" OPENCV PARAMS """
-kp = 1500
-ki = 350
-kd = 5
+horizFov = 124
+vertFov = 93
 
-allowedProximityPixels = 10
-leadConstPixels = 15
+onTargetPixelProximity = 20
+
+""" PID PARAMS """
+kp = 1500/1000000
+ki = 350/1000000
+kd = 5/1000000
 
 """ PATHS """
 audioDir = '/home/pi/audio/'

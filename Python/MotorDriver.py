@@ -1,7 +1,6 @@
 __version__ = '0.0.1'
 
 import Config as cfg
-from simple_pid import PID
 import os
 import time
 import math
@@ -28,19 +27,22 @@ class MotorDriver(object):
         self.laser = LED(cfg.laserPin)
         self.laser.on()
 
-        self.configItsybitsy()
 
-        self.pitchPid = PID(cfg.kp, cfg.ki, cfg.kd)
-        # self.pitchPid.output_limits = (-0.015, 0.015)
-        self.yawPid = PID(cfg.kp, cfg.ki, cfg.kd)
-        # self.yawPid.output_limits = (-0.015, 0.015)
+    def startFiring(self):
+        print()
 
+    def stopFiring(self):
+        print()
+
+    def reversPusher(self):
+        print()
 
     def configItsybitsy(self):
         print()
 
-
     def zero(self):
         print()
+
+    
 
     

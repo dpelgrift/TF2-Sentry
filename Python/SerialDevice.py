@@ -30,3 +30,16 @@ class SerialDevice(object):
                     last_resp = resp
                     if cfg.DEBUG_MODE:
                         print('serial response:', last_resp)
+
+    def verifySerial(self):
+        self.serial_dev.flush()
+        self.serial_dev.write(('marco\n').encode('ascii'))
+        tnow = time.time()
+        while time.time() - tnow < self.R_TIMEOUT:
+            if (self.serial_dev.inWaiting() > 0):  
+                resp = self.serial_dev.readline().decode('ascii')
+                if 'polo' in resp:
+                    return True
+                else:
+                    print("Serial Response:" + resp)
+        return False

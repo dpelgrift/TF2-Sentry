@@ -15,14 +15,15 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
+        self.capture = None
 
         self.frameNum = 0
 
         self.targetLocked = False
 
-        #self.tracker = cv2.TrackerKCF_create()
+        self.tracker = cv2.TrackerKCF_create()
         self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
-        self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
+        #self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
 
     @staticmethod
     def saveImage(img, imPath):
@@ -40,17 +41,80 @@ class CameraDriver(object):
     def stop(self):
         self.capture.release()
 
+    def resetLock(self):
+        self.tracker.clear()
+        self.tracker = cv2.TrackerKCF_create()
+        self.lockedOn = False
 
-    def findTargets(self):
+    def lockOn(self,targetBox,frame):
+        self.resetLock()
+        self.tracker.init(frame,targetBox)
+        self.lockedOn = True
+
+    def getTargetLocation(self):
+        frame = self.getFrame()
+        ok, bbox = self.tracker.update(frame)
+
+        tnow = time.time()
+        if ok:
+            h = bbox[1] + int(bbox[3] / 2)
+            w = bbox[0] + int(bbox[2] / 2)
+
+            (a, b, c, d) = (int(j) for j in bbox)
+            frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
+
+            if cfg.DEBUG_MODE:
+                print("[{}, {}] - {} fps".format(h, w, 1 / (tnow - self.tlast)))
+                self.tlast = tnow
+
+            if cfg.SAVE_IMGS:
+                self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
+
+            return (h, w)
+        else:
+            print("Tracking failed")
+            if cfg.SAVE_IMGS:
+                self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
+            return (0,0)
+
+    def findTarget(self):
         frame = self.getFrame()
 
         fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,1.2,6)
         # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
+
+        # If targets empty, return None
+        if len(fullBodyTargets) == 0:
+            return None, frame
+        if len(fullBodyTargets) == 1: # If only one target detected, return it
+            [a, b, c, d] = fullBodyTargets[0]
+            return (a, b, c, d), frame
+
+        # Otherwise, find the target closest to center of frame
+        midPoint = np.around(np.array(cfg.videoResolution)/2)
+
+        targetArray = np.array(fullBodyTargets)
+        
+        numTargets = targetArray.shape[0]
+        targetDists = np.zeros(numTargets)
+        targetLocations = targetArray[:,0:2] + np.around(targetArray[:,2:4]/2) - midPoint
+        
+        # Compute vector magnitude of distance to each target
+        for tIdx in range(numTargets):
+            targetDists[tIdx] = np.linalg.norm(targetLocations[tIdx,:1])
+            
+
+        [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
+        return (a, b, c, d), frame
 
 
 
     def getFrame(self):
         _, frame = self.capture.read()
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        if cfg.SAVE_IMGS:
+            self.frameNum += 1
+            self.saveImage(grayFrame, '{}.jpg'.format(self.frameNum))
 
         return grayFrame
