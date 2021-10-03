@@ -40,12 +40,13 @@ class Sentry(object):
         print("Camera connection successful")
 
         # Create Motor Driver
-        self.motors = MotorDriver(self.sd)
+        self.motors = MotorDriver()
         # Configure itsybitsy & verify mpu6050 connection
         self.motors.configItsybitsy()
 
         # Create audio player object & play startup tone
         self.audio = AudioPlayer()
+        self.audio.playSpotSound(self)
 
         self.pitchPid = PID(cfg.kp, cfg.ki, cfg.kd)
         # self.pitchPid.output_limits = (-0.015, 0.015)
@@ -55,21 +56,26 @@ class Sentry(object):
     
     def scanningMode(self):
         # Main loop
-        scanModeState = False
+        doSendScanMessage = True
         firingTime= None
         isFiring = False
-
+        targetLostTime = None
+        scanSoundTime = time.time()
         while True:
-            
             # Target search loop
             if not self.cam.targetLocked:
-                if not scanModeState:
-                    #TODO Send command to itsybitsy to enter scanning subroutine
-                    scanModeState = True
+                if doSendScanMessage:
+                    self.sd.command('S0')
+                    doSendScanMessage = False
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is None:
+                    # Play scan sound at regular intervals
+                    if time.time() - scanSoundTime < cfg.scanSoundPlayInterval:
+                        self.audio.playScanSound()
+                        scanSoundTime = time.time()
                     continue
                 else:
+                    self.audio.playSpotSound(self) # Play spot sound
                     self.cam.lockOn(self,bbox,frame)
                     self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
@@ -85,6 +91,7 @@ class Sentry(object):
                     # Reverse direction of pusher occasionally to clear jams
                     if time.time() - firingTime > cfg.pusherReverseDurationSec:
                         self.motors.reversePusher()
+                        firingTime = time.time()
                 else:
                     self.motors.beginFiring()
                     isFiring = True
@@ -95,19 +102,25 @@ class Sentry(object):
                 firingTime = None
 
 
-            # If target
+            # If target visible, update position
             if h != 0 and w != 0:
                 pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
                 if cfg.DEBUG_MODE:
                     print('PID: {}, {}'.format(pitchPid, yawPid))
-            else:
-                print()
-
-    
+            else: # If target not visible
+                # Reset target lock status so that sentry will immediately look for new target\
+                self.cam.resetLock()
+                if targetLostTime is not None:
+                    targetLostTime = time.time()
+                elif targetLostTime > cfg.scanReturnPeriodSec:
+                    # Wait some time before re-sending scanning subroutine
+                    doSendScanMessage = True
+                    targetLostTime = None
+                    self.motors.flyWheels.off() # Spool down flywheels
                 
+            
 
     def updateTarget(self,pitchPixErr,yawPixErr):
-        
         # Convert pixel errors to degree errors
         pitchDegErr = pitchPixErr*cfg.horizFov/cfg.videoResolution[0]
         yawDegErr = yawPixErr*cfg.vertFov/cfg.videoResolution[1]
@@ -115,12 +128,33 @@ class Sentry(object):
         pitchMoveDeg = self.pitchPid(pitchDegErr)
         yawMoveDeg = self.yawPid(yawDegErr)
 
+        self.move(pitchMoveDeg,yawMoveDeg)
 
+        if cfg.DEBUG_MODE:
+            print('PITCH: {}\tcomponents: {}'.format(pitchMoveDeg, self.pitchPid.components))
+            print('YAW: {}\tcomponents: {}'.format(yawMoveDeg, self.yawPid.components))
 
+        return pitchMoveDeg, yawMoveDeg
+
+    def move(self, pitchDeg, yawDeg):
+        if pitchDeg < cfg.pitchLimitsDeg[0]:
+            pitchDeg = cfg.pitchLimitsDeg[0]
+        elif pitchDeg > cfg.pitchLimitsDeg[1]:
+            pitchDeg = cfg.pitchLimitsDeg[1]
+
+        command = 'G0 X{} Y{}'.format(yawDeg,pitchDeg)
+        self.sd.command(command)
 
     def resetPid(self):
         self.pitchPid.reset()
         self.yawPid.reset()
+
+    def getPosition(self):
+        print()
+
+    def configItsybitsy(self):
+        # TODO
+        print()
 
     def wranglerMode(self):
         # TODO

@@ -2,8 +2,10 @@
 scanSpeedDegPerSec = 50
 scanAngleDeg = 150
 
-panStepsPerRev = 400
-panTravelWidthDeg = 180
+yawStepsPerRev = 400
+yawTravelWidthDeg = 180
+
+pitchLimitsDeg = (-10,20)
 
 panDefaultVelDegPerSec = 60
 panDefaultVelDegPerSec2 = 200
@@ -42,6 +44,10 @@ horizFov = 124
 vertFov = 93
 
 onTargetPixelProximity = 20
+
+""" MISC """
+scanReturnPeriodSec = 3
+scanSoundPlayInterval = 5
 
 """ PID PARAMS """
 kp = 1500/1000000

@@ -1,26 +1,17 @@
 __version__ = '0.0.1'
 
 import Config as cfg
-import os
-import time
-import math
 from gpiozero import Servo, LED
 
 
 class MotorDriver(object):
-    def __init__(self, serialDevice):
-        self.serialDevice = serialDevice
-        self.yawTarget = 0.
-        self.pitchTarget = 0.
-        self.yawVel = 0.
-        self.tiltVel = 0.
-        self.doSpool = 0
-        self.triggerStart = 0
+    def __init__(self):
 
         self.pusher = Servo(cfg.pusherPin,min_pulse_width=cfg.pusherMinPwm,max_pulse_width=cfg.pusherMaxPwm)
         self.hopper = Servo(cfg.hopperPin,min_pulse_width=cfg.hopperMinPwm,max_pulse_width=cfg.hopperMaxPwm)
         
         self.flyWheels = LED(cfg.flywheelPin)
+        self.pusherDirection = 1
 
         self.led = LED(cfg.ledPin)
         self.led.on()
@@ -29,19 +20,17 @@ class MotorDriver(object):
 
 
     def startFiring(self):
-        print()
+        self.hopper.value = 1
+        self.pusher.value = self.pusherDirection
 
     def stopFiring(self):
-        print()
+        self.hopper.value = None
+        self.pusher.value = None
 
-    def reversPusher(self):
-        print()
+    def reversePusher(self):
+        self.pusherDirection = -1*self.pusherDirection
+        self.pusher.value = self.pusherDirection
 
-    def configItsybitsy(self):
-        print()
-
-    def zero(self):
-        print()
 
     
 
