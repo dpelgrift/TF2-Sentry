@@ -7,13 +7,13 @@ yawTravelWidthDeg = 180
 
 pitchLimitsDeg = (-10,20)
 
-panDefaultVelDegPerSec = 60
-panDefaultVelDegPerSec2 = 200
+yawDefaultVelDegPerSec = 60
+yawDefaultVelDegPerSec2 = 200
 
 flywheelMinSpoolTimeSec = 2
 
-tiltMinPwm = 1.0/1000
-tiltMaxPwm = 2.0/1000
+tiltMinPwm = 0.5/1000
+tiltMaxPwm = 2.5/1000
 tiltDefaultCenterPwm = 75
 
 tiltDefaultVelPwmPerSec = 5
@@ -26,7 +26,7 @@ pusherMaxPwm = 2.0/1000
 hopperLeadingBufferSec = 1
 hopperLaggingBufferSec = 1
 hopperMinPwm = 1.0/1000
-hopperMaxPwm = 3.0/1000
+hopperMaxPwm = 2.0/1000
 
 """ PINOUTS """
 ledPin = 17

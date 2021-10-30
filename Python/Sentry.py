@@ -80,7 +80,7 @@ class Sentry(object):
                     self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
                     if cfg.DEBUG_MODE:
-                        print('FACE locked on')
+                        print('Target locked on')
 
             h,w = self.cam.getTargetLocation()
 
