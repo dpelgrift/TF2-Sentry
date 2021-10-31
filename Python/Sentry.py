@@ -128,7 +128,7 @@ class Sentry(object):
         pitchMoveDeg = self.pitchPid(pitchDegErr)
         yawMoveDeg = self.yawPid(yawDegErr)
 
-        self.move(pitchMoveDeg,yawMoveDeg)
+        self.relMove(pitchMoveDeg,yawMoveDeg)
 
         if cfg.DEBUG_MODE:
             print('PITCH: {}\tcomponents: {}'.format(pitchMoveDeg, self.pitchPid.components))
@@ -136,13 +136,17 @@ class Sentry(object):
 
         return pitchMoveDeg, yawMoveDeg
 
-    def move(self, pitchDeg, yawDeg):
-        if pitchDeg < cfg.pitchLimitsDeg[0]:
-            pitchDeg = cfg.pitchLimitsDeg[0]
-        elif pitchDeg > cfg.pitchLimitsDeg[1]:
-            pitchDeg = cfg.pitchLimitsDeg[1]
+    def relMove(self, pitchDeg, yawDeg):
+        # if pitchDeg < cfg.pitchLimitsDeg[0]:
+        #     pitchDeg = cfg.pitchLimitsDeg[0]
+        # elif pitchDeg > cfg.pitchLimitsDeg[1]:
+        #     pitchDeg = cfg.pitchLimitsDeg[1]
 
-        command = 'G0 X{} Y{}'.format(yawDeg,pitchDeg)
+        # round vals to keep serial buffer short
+        pitchDeg = round(pitchDeg,1)
+        yawDeg = round(yawDeg,1)
+
+        command = '<{},{}>'.format(yawDeg,pitchDeg)
         self.sd.command(command)
 
     def resetPid(self):

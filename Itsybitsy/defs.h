@@ -7,7 +7,7 @@
 #define STEP4 13
 #define INTERRUPT_PIN 2
 
-// Physical params
+// Physical position params
 #define SERVOSHAFT_X -75.7
 #define SERVOSHAFT_Y -34.0
 #define TILTSHAFT_X 0.0
@@ -23,11 +23,13 @@
 #define TILT_MIN_PULSE 500
 #define TILT_MAX_PULSE 2500
 #define TILT_INIT_PULSE 900
-#define TILT_SPEED_DEG_PER_SEC 10
+#define TILT_SPEED_DEG_PER_SEC 20
 
 #define STEPS_PER_REV 400
 #define STEPPER_MAX_SPEED 150
 #define STEPPER_ACCEL 50
+
+#define SCAN_RESET_TIME_MS 5000
 
 #define ACCELX_OFFSET -2646
 #define ACCELY_OFFSET 1617
@@ -37,5 +39,14 @@
 #define GYROY_OFFSET -29
 #define GYROZ_OFFSET 111
 
+//Movement bounds
+#define TILT_MIN_ANGLE -10
+#define TILT_MAX_ANGLE 30
+
+#define YAW_MAX_WIDTH_DEG 180
+#define DO_BOUND_YAW false
+#define SCAN_YAW_WIDTH_DEG 120
+
 // Serial params
 #define BAUDRATE 250000
+#define MAX_MSG_LEN 100
