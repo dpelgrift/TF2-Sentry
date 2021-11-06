@@ -45,10 +45,7 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 
 // General vars
 bool newData = false;
-bool targetDetected = false;
 bool startScanFlag = true;
-unsigned long startTime_us;
-unsigned long t_elapsed_us;
 unsigned long lastUpdateTime_ms;
 
 char receivedChars[MAX_MSG_LEN];
@@ -66,7 +63,7 @@ float relPitchDeg;
 
 void setup() {
     Serial1.begin(BAUDRATE);
-    // Wait for verification string from Raspi
+    // Wait for verification string from pi
     while (!Serial1.available()) {}
     
     // Search for verification string
@@ -86,7 +83,6 @@ void setup() {
 
 
     Serial1.println(F("Configuration successful, entering scanning mode"));
-    startTime_us = micros();
 }
 
 void loop() {
@@ -96,19 +92,21 @@ void loop() {
         startScanFlag = false;
     }
 
-    // If new data available, parse it for movement commands
+    // If new data available
     if (newData) {
         strcpy(tempChars, receivedChars);
         parseData(); // Parse movement commands
         newData = false;
 
+        // Update position estimate
         if (updateCurrTiltYaw()) {
             stepper.setCurrentPosition(currTurretYawSteps);
         }
 
+        // Compute absolute target position from relative angles & current angles
         currTargetYawAngleDeg = currTurretYawAngleDeg + relYawDeg;
-        currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relYawDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE);
-        if (DO_BOUND_YAW) {
+        currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relYawDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE); // Bound pitch to prevent breaking stuff
+        if (DO_BOUND_YAW) { // Optionally bound yaw
             currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
         }
 
@@ -118,6 +116,11 @@ void loop() {
         tiltServo.startEaseTo(turretAngle2ServoAngle(currTargetPitchAngleDeg));
 
         lastUpdateTime_ms = millis();
+    }
+
+    // Update position estimate
+    if (updateCurrTiltYaw()) {
+        stepper.setCurrentPosition(currTurretYawSteps);
     }
 
     stepper.run();
@@ -155,7 +158,7 @@ void enterScanningLoop() {
         if (stepper.distanceToGo() == 0)
             stepper.moveTo(-stepper.currentPosition());
 
-        // Keep stepper position updated by MPU to correct for any skipping in stepper
+        // Keep stepper position updated by MPU to correct for any missed steps
         if (updateCurrTiltYaw()) {
             stepper.setCurrentPosition(currTurretYawSteps);
         }
@@ -218,7 +221,7 @@ void initMPU() {
     // Setup mpu6050
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
-    Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
+    Wire.setClock(400000); // 400kHz I2C clock.
 
     // initialize device
     Serial1.println(F("Initializing MPU..."));
@@ -228,16 +231,19 @@ void initMPU() {
     // verify connection
     Serial1.println(F("Testing MPU connection..."));
     bool connectionStatus = mpu.testConnection();
-    Serial1.println(connectionStatus ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    Serial1.println(connectionStatus ? F("MPU6050 connection successful") : F("Error: MPU6050 connection failed"));
     while (!connectionStatus) {}
 
     // load and configure the DMP
     devStatus = mpu.dmpInitialize();
 
     // Return status code
-    Serial1.println(F("DMP Status:"));
+    Serial1.print(F("DMP Status: "));
     Serial1.println(devStatus);
-    while (devStatus != 0) {}
+    if (devStatus != 0) {
+        Serial1.println(F("Error: DMP init failed"));
+        while (true) {}
+    }
 
     // supply your own gyro offsets here, scaled for min sensitivity
     mpu.setXGyroOffset(GYROX_OFFSET);
@@ -329,7 +335,7 @@ void configTiltServo(){
 
     if (abs(approxPitch) > 1.0) {
         // If approximate pitch close enough to level, reset DMP & exit
-        Serial1.println(F("Zeroing unsuccessful"));
+        Serial1.print(F("Error: Zeroing unsuccessful, approxPitch = "));
         Serial1.println(approxPitch);
         while (true) {}
     }
@@ -342,7 +348,7 @@ void configTiltServo(){
 }
 
 
-// Serial parsing funcs
+// Read serial data into buffer without blocking & detect when end marker received
 void recvWithStartEndMarkers() {
     static boolean recvInProgress = false;
     static byte ndx = 0;
@@ -350,8 +356,8 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char rc;
 
-    while (Serial.available() > 0 && newData == false) {
-        rc = Serial.read();
+    while (Serial1.available() > 0 && newData == false) {
+        rc = Serial1.read();
 
         if (recvInProgress == true) {
             if (rc != endMarker) {
@@ -375,14 +381,14 @@ void recvWithStartEndMarkers() {
     }
 }
 
-void parseData() {      // split the data into its parts
-
+// Parse received target position by splitting the data into its parts
+void parseData() { 
     char * strtokIndx; // this is used by strtok() as an index
 
-    strtokIndx = strtok(tempChars,",");      // get the first part - the string
-    relYawDeg = atof(strtokIndx);     // convert to a float
+    strtokIndx = strtok(tempChars,",");     // get the yaw
+    relYawDeg = atof(strtokIndx);           // convert to a float
 
-    strtokIndx = strtok(NULL, ",");
-    relPitchDeg = atof(strtokIndx);     // convert to a float
+    strtokIndx = strtok(NULL, ",");         // get the pitch
+    relPitchDeg = atof(strtokIndx);         // convert to a float
 
 }

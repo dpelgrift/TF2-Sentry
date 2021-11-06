@@ -21,3 +21,11 @@ class AudioPlayer(object):
         pygame.mixer.music.play()
         #while pygame.mixer.music.get_busy():
         #    continue
+
+    def playErrorSound(self):
+        #play_obj = self.scanSound.play()
+        pygame.mixer.init()
+        pygame.mixer.music.load(cfg.audioDir + "Sentry_spot_client.wav")
+        pygame.mixer.music.play()
+        #while pygame.mixer.music.get_busy():
+        #    continue

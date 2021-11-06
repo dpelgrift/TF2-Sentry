@@ -58,13 +58,13 @@ class CameraDriver(object):
             w = bbox[0] + int(bbox[2] / 2)
 
             (a, b, c, d) = (int(j) for j in bbox)
-            frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
-
+            
             if cfg.DEBUG_MODE:
                 print("[{}, {}] - {} fps".format(h, w, 1 / (tnow - self.tlast)))
                 self.tlast = tnow
 
             if cfg.SAVE_IMGS:
+                frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
 
             return (h, w)
@@ -112,6 +112,6 @@ class CameraDriver(object):
 
         if cfg.SAVE_IMGS:
             self.frameNum += 1
-            self.saveImage(grayFrame, '{}.jpg'.format(self.frameNum))
+            self.saveImage(frame, '{}.jpg'.format(self.frameNum))
 
         return grayFrame

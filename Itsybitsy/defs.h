@@ -18,7 +18,7 @@
 #define LIFTERBASE_2_TILTSHAFT_RELANGLE_DEG 6.61
 #define PITCH_2_TILTANGLE_OFFSET 30.8
 
-// Hardware params
+// Stepper/Servo params
 #define YAW_STEPS_PER_REV 400
 #define TILT_MIN_PULSE 500
 #define TILT_MAX_PULSE 2500
@@ -31,6 +31,7 @@
 
 #define SCAN_RESET_TIME_MS 5000
 
+// MPU Params
 #define ACCELX_OFFSET -2646
 #define ACCELY_OFFSET 1617
 #define ACCELZ_OFFSET 1306

@@ -15,8 +15,10 @@ class MotorDriver(object):
 
         self.led = LED(cfg.ledPin)
         self.led.on()
+        
         self.laser = LED(cfg.laserPin)
-        self.laser.on()
+        if cfg.doTurnLaserOn:
+            self.laser.on()
 
 
     def startFiring(self):
@@ -30,6 +32,16 @@ class MotorDriver(object):
     def reversePusher(self):
         self.pusherDirection = -1*self.pusherDirection
         self.pusher.value = self.pusherDirection
+
+    def blinkErrCode(self,errCode):
+        # Err types & codes:
+        # Serial connection err:    0
+        # Itsybitsy config err:     1
+        # Camera init err:          2
+        #
+
+        #TODO
+        print()
 
 
     

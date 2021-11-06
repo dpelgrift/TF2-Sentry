@@ -46,7 +46,8 @@ vertFov = 93
 onTargetPixelProximity = 20
 
 """ MISC """
-scanReturnPeriodSec = 3
+doTurnLaserOn = True
+spoolDownDelay = 3
 scanSoundPlayInterval = 5
 
 """ PID PARAMS """
@@ -59,8 +60,15 @@ audioDir = '/home/pi/audio/'
 imgSaveDir = '/home/pi/imgs/'
 vidSaveDir = '/home/pi/vids/'
 
+""" SERIAL PARAMS """
+BAUDRATE = 250000
+S_TIMEOUT = 0.2
+R_TIMEOUT = 10
+
 """ DEBUG """
 DEBUG_MODE = True
 TEST_MODE = True
 SAVE_IMGS = True
 SAVE_VID = True
+DISP_FRAME = True
+BYPASS_SERIAL_VERIFY = False

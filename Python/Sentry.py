@@ -13,74 +13,69 @@ from AudioPlayer import *
 
 class Sentry(object):
     def __init__(self):
-        # Initialize/verify serial connection
+        # Create audio player object & play startup tone
+        self.audio = AudioPlayer()
+        self.audio.playSpotSound(self)
+
+        # Create Motor Driver
+        self.motors = MotorDriver()
+
+        # Initialize serial connection
         self.sd = SerialDevice()
 
-        if cfg.TEST_MODE:
+        if cfg.BYPASS_SERIAL_VERIFY:
             isVerified = True
-            print("Test mode active, bypassing serial verification")
+            print("Bypassing serial verification")
         else:
-            isVerified = self.sd.verifySerial()
-
-        if not isVerified:
-            print("Serial connection failed")
-            while True:
-                1
-        print("Serial connection successful")
-
+            self.verifySerial()
+            
         # Create Camera Handler & Verify Connection
         self.cam = CameraDriver()
         self.cam.start()
         # Test video capture by trying to read a frame
         ret = self.cam.capture.read()
         if not ret:
-            print("Camera connection failed")
-            while True:
-                1
+            self.errorDetected("Camera connection failed")
         print("Camera connection successful")
 
-        # Create Motor Driver
-        self.motors = MotorDriver()
-        # Configure itsybitsy & verify mpu6050 connection
-        self.motors.configItsybitsy()
-
-        # Create audio player object & play startup tone
-        self.audio = AudioPlayer()
-        self.audio.playSpotSound(self)
-
         self.pitchPid = PID(cfg.kp, cfg.ki, cfg.kd)
-        # self.pitchPid.output_limits = (-0.015, 0.015)
         self.yawPid = PID(cfg.kp, cfg.ki, cfg.kd)
-        # self.yawPid.output_limits = (-0.015, 0.015)
 
     
-    def scanningMode(self):
-        # Main loop
+    def mainLoop(self):
+        # Main function loop
         doSendScanMessage = True
         firingTime= None
         isFiring = False
-        targetLostTime = None
+        targetLostTime = 0
+        flyWheelsActive = False
         scanSoundTime = time.time()
         while True:
             # Target search loop
             if not self.cam.targetLocked:
-                if doSendScanMessage:
-                    self.sd.command('S0')
-                    doSendScanMessage = False
+                # if doSendScanMessage:
+                #     self.sd.command('S0')
+                #     doSendScanMessage = False
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
-                if bbox is None:
-                    # Play scan sound at regular intervals
-                    if time.time() - scanSoundTime < cfg.scanSoundPlayInterval:
-                        self.audio.playScanSound()
-                        scanSoundTime = time.time()
-                    continue
-                else:
+                if bbox is not None: # If target detected
                     self.audio.playSpotSound(self) # Play spot sound
                     self.cam.lockOn(self,bbox,frame)
                     self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
+                    flyWheelsActive = True
                     if cfg.DEBUG_MODE:
                         print('Target locked on')
+                else:
+                    # Play scan sound at regular intervals
+                    if time.time() - scanSoundTime > cfg.scanSoundPlayInterval:
+                        self.audio.playScanSound()
+                        scanSoundTime = time.time()
+                    # If enought time passes without seeing a target, spool down flywheels if they are active
+                    if time.time() - targetLostTime > cfg.spoolDownDelay and flyWheelsActive:
+                        targetLostTime = time.time()
+                        self.motors.flyWheels.off() # Spool down flywheels
+                        flyWheelsActive = False
+                    continue
 
             h,w = self.cam.getTargetLocation()
 
@@ -88,12 +83,12 @@ class Sentry(object):
             if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
                 w-cfg.wTargetCenter < cfg.onTargetPixelProximity:
                 if isFiring:
-                    # Reverse direction of pusher occasionally to clear jams
+                    # Reverse direction of pusher regularly to clear any jams
                     if time.time() - firingTime > cfg.pusherReverseDurationSec:
                         self.motors.reversePusher()
                         firingTime = time.time()
                 else:
-                    self.motors.beginFiring()
+                    self.motors.startFiring()
                     isFiring = True
                     firingTime = time.time()
             elif(isFiring):
@@ -108,15 +103,10 @@ class Sentry(object):
                 if cfg.DEBUG_MODE:
                     print('PID: {}, {}'.format(pitchPid, yawPid))
             else: # If target not visible
-                # Reset target lock status so that sentry will immediately look for new target\
+                # Reset target lock status so that sentry will immediately look for new targets
                 self.cam.resetLock()
-                if targetLostTime is not None:
-                    targetLostTime = time.time()
-                elif targetLostTime > cfg.scanReturnPeriodSec:
-                    # Wait some time before re-sending scanning subroutine
-                    doSendScanMessage = True
-                    targetLostTime = None
-                    self.motors.flyWheels.off() # Spool down flywheels
+                targetLostTime = time.time()
+                
                 
             
 
@@ -153,16 +143,33 @@ class Sentry(object):
         self.pitchPid.reset()
         self.yawPid.reset()
 
-    def getPosition(self):
-        print()
-
-    def configItsybitsy(self):
-        # TODO
-        print()
-
     def wranglerMode(self):
         # TODO
         print()
+
+    def verifySerial(self):
+        # Verify serial connection
+        isVerified = self.sd.verifySerial()
+        if not isVerified:
+            print("Serial connection failed")
+            while True:
+                1
+        print("Serial connection successful")
+
+        # Pass through configuration messages from ItsyBitsy
+        while True:
+            resp = self.sd.readSerialLine()
+            if 'Error' in resp:
+                print()
+            elif 'entering scanning mode' in resp:
+                print()
+
+    def errorDetected(self, errMsg):
+        self.audio.playErrorSound()
+        print(errMsg)
+        print('... exiting in 5 seconds')
+        time.sleep(5)
+        exit()
 
 
 if __name__=='__main__':
@@ -170,4 +177,4 @@ if __name__=='__main__':
     if cfg.TEST_MODE:
         testingMode(sen)
     # TODO: Insert code to check for bluetooth controller to enter wrangler mode
-    sen.scanningMode()
+    sen.mainLoop()
