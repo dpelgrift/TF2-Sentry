@@ -13,7 +13,6 @@
 #include "ServoEasing.h"
 
 #include "defs.h"
-#include "funcs.ino"
 #include "Servo.h"
 #include "string"
 
@@ -40,10 +39,12 @@ uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 Quaternion q;           // [w, x, y, z]         quaternion container
-float euler[3];         // [psi, theta, phi]    Euler angle container
+VectorFloat gravity;    // [x, y, z]            gravity vector
+float ypr[3];         // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 
 // General vars
+bool testingMode = false;
 bool newData = false;
 bool startScanFlag = true;
 unsigned long lastUpdateTime_ms;
@@ -68,7 +69,10 @@ void setup() {
     
     // Search for verification string
     String val = Serial1.readStringUntil('\n');
-    if (val == F("marco\n")) {
+    if (val == F("test\n")) {
+        Serial1.println(F("testing"));
+        testingMode = true;
+    } else if (val == F("marco\n")) {
         Serial1.println(F("polo"));
     }
 
@@ -87,7 +91,8 @@ void setup() {
 
 void loop() {
     
-    if (startScanFlag) {
+    // If scan flag true and not in testing mode, enter scanning loop
+    if (startScanFlag && !testingMode) {
         enterScanningLoop();
         startScanFlag = false;
     }
@@ -105,7 +110,7 @@ void loop() {
 
         // Compute absolute target position from relative angles & current angles
         currTargetYawAngleDeg = currTurretYawAngleDeg + relYawDeg;
-        currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relYawDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE); // Bound pitch to prevent breaking stuff
+        currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relPitchDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE); // Bound pitch to prevent breaking stuff
         if (DO_BOUND_YAW) { // Optionally bound yaw
             currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
         }
@@ -124,6 +129,10 @@ void loop() {
     }
 
     stepper.run();
+
+    
+    // Read more data from serial buffer
+    recvWithStartEndMarkers();
 
     // If enough time has pased since the last update, reenter scanning mode
     if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS)
@@ -268,11 +277,12 @@ void initMPU() {
 bool updateCurrTiltYaw() {
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
         mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetEuler(euler, &q);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
         //TODO: Ensure that euler angles match up correctly to axes of MPU
-        currTurretPitchAngleDeg = euler[0] * RAD_TO_DEG;
-        currTurretYawAngleDeg= euler[2] * RAD_TO_DEG;
+        currTurretPitchAngleDeg = ypr[0] * RAD_TO_DEG;
+        currTurretYawAngleDeg= ypr[2] * RAD_TO_DEG * -1.0;
 
         currTurretYawSteps = yawAngle2Steps(currTurretYawAngleDeg);
 

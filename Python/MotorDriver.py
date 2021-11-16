@@ -1,6 +1,7 @@
 __version__ = '0.0.1'
 
 import Config as cfg
+import time
 from gpiozero import Servo, LED
 
 
@@ -40,8 +41,15 @@ class MotorDriver(object):
         # Camera init err:          2
         #
 
-        #TODO
-        print()
+        while True:
+            self.led.off()
+            time.sleep(1)
+
+            for i in range(errCode+1):
+                self.led.on()
+                time.sleep(0.2)
+                self.led.off()
+                time.sleep(0.2)
 
 
     

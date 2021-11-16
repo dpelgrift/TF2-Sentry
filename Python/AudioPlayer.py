@@ -25,7 +25,7 @@ class AudioPlayer(object):
     def playErrorSound(self):
         #play_obj = self.scanSound.play()
         pygame.mixer.init()
-        pygame.mixer.music.load(cfg.audioDir + "Sentry_spot_client.wav")
+        pygame.mixer.music.load(cfg.audioDir + "Sentry_error.wav")
         pygame.mixer.music.play()
         #while pygame.mixer.music.get_busy():
         #    continue

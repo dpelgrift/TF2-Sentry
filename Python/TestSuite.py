@@ -2,7 +2,7 @@ import Config as cfg
 import time
 
 testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher\n"+\
-                        "4: Test flywheels, 5: Test serial connection, 6: Test IMU\n"+\
+                        "4: Test flywheels, 5: Test Itsybitsy, 6: Test IMU\n"+\
                         "7: Test tilt servo, 8: Test pan stepper, 9: Test firing sequence"
  
 
@@ -24,7 +24,7 @@ def testSelector(val,sentry):
     elif val == 4:
         testFlywheels(sentry)
     elif val == 5:
-        testSerial(sentry)
+        testItsy(sentry)
     elif val == 6:
         testIMU(sentry)
     elif val == 7:
@@ -60,8 +60,11 @@ def testFlywheels(sentry):
     time.sleep(5.0)
     sentry.flyWheels.off()
 
-def testSerial(sentry):
-    print()
+def testItsy(sentry):
+    yaw = input("Specify relative yaw (degrees): ")
+    tilt = input("Specify relative tilt (degrees): ")
+    sentry.relMove(tilt,yaw)
+    time.sleep(1.0)
 
 def testIMU(sentry):
     print()

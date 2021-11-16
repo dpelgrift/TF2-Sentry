@@ -24,7 +24,6 @@ class Sentry(object):
         self.sd = SerialDevice()
 
         if cfg.BYPASS_SERIAL_VERIFY:
-            isVerified = True
             print("Bypassing serial verification")
         else:
             self.verifySerial()
@@ -132,9 +131,9 @@ class Sentry(object):
         # elif pitchDeg > cfg.pitchLimitsDeg[1]:
         #     pitchDeg = cfg.pitchLimitsDeg[1]
 
-        # round vals to keep serial buffer short
-        pitchDeg = round(pitchDeg,1)
-        yawDeg = round(yawDeg,1)
+        # round vals to keep serial message short. Don't need high precision anyways
+        pitchDeg = round(pitchDeg,2)
+        yawDeg = round(yawDeg,2)
 
         command = '<{},{}>'.format(yawDeg,pitchDeg)
         self.sd.command(command)
@@ -149,7 +148,10 @@ class Sentry(object):
 
     def verifySerial(self):
         # Verify serial connection
-        isVerified = self.sd.verifySerial()
+        if cfg.TEST_MODE:
+            isVerified = self.sd.verifySerial('marco\n','polo')
+        else:
+            isVerified = self.sd.verifySerial('test\n','testing')
         if not isVerified:
             print("Serial connection failed")
             while True:
@@ -159,10 +161,11 @@ class Sentry(object):
         # Pass through configuration messages from ItsyBitsy
         while True:
             resp = self.sd.readSerialLine()
+            print(resp)
             if 'Error' in resp:
-                print()
+                self.errorDetected(resp)
             elif 'entering scanning mode' in resp:
-                print()
+                break
 
     def errorDetected(self, errMsg):
         self.audio.playErrorSound()

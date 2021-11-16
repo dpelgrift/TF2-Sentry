@@ -27,14 +27,14 @@ class SerialDevice(object):
                     if cfg.DEBUG_MODE:
                         print('serial response:', last_resp)
 
-    def verifySerial(self):
+    def verifySerial(self,msg1,msg2):
         self.serial_dev.flush()
-        self.serial_dev.write(('marco\n').encode('ascii'))
+        self.serial_dev.write((msg1).encode('ascii'))
         tnow = time.time()
         while time.time() - tnow < self.R_TIMEOUT:
             if (self.serial_dev.inWaiting() > 0):  
                 resp = self.serial_dev.readline().decode('ascii')
-                if 'polo' in resp:
+                if msg2 in resp:
                     return True
                 else:
                     print("Serial Response:" + resp)

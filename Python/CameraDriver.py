@@ -15,7 +15,6 @@ class CameraDriver(object):
         self.capture = None
 
         self.frameNum = 0
-
         self.targetLocked = False
 
         self.tracker = cv2.TrackerKCF_create()
@@ -62,11 +61,9 @@ class CameraDriver(object):
             if cfg.DEBUG_MODE:
                 print("[{}, {}] - {} fps".format(h, w, 1 / (tnow - self.tlast)))
                 self.tlast = tnow
-
             if cfg.SAVE_IMGS:
                 frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
-
             return (h, w)
         else:
             print("Tracking failed")
@@ -89,7 +86,6 @@ class CameraDriver(object):
 
         # Otherwise, find the target closest to center of frame
         midPoint = np.around(np.array(cfg.videoResolution)/2)
-
         targetArray = np.array(fullBodyTargets)
         
         numTargets = targetArray.shape[0]
@@ -100,7 +96,6 @@ class CameraDriver(object):
         for tIdx in range(numTargets):
             targetDists[tIdx] = np.linalg.norm(targetLocations[tIdx,:1])
             
-
         [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
         return (a, b, c, d), frame
 
