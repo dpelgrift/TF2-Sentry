@@ -61,7 +61,7 @@ imgSaveDir = '/home/pi/imgs/'
 vidSaveDir = '/home/pi/vids/'
 
 """ SERIAL PARAMS """
-BAUDRATE = 250000
+BAUDRATE = 115200
 S_TIMEOUT = 0.2
 R_TIMEOUT = 10
 

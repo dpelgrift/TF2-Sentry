@@ -49,5 +49,5 @@
 #define SCAN_YAW_WIDTH_DEG 120
 
 // Serial params
-#define BAUDRATE 250000
+#define BAUDRATE 115200
 #define MAX_MSG_LEN 100

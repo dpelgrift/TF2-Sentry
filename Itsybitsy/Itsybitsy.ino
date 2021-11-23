@@ -14,7 +14,8 @@
 
 #include "defs.h"
 #include "Servo.h"
-#include "string"
+// #include "string"
+//#define Serial1 Serial
 
 MPU6050 mpu;
 ServoEasing tiltServo;
@@ -262,8 +263,8 @@ void initMPU() {
     mpu.setYAccelOffset(ACCELY_OFFSET);
     mpu.setZAccelOffset(ACCELZ_OFFSET);
 
-    mpu.CalibrateAccel(6);
-    mpu.CalibrateGyro(6);
+    //mpu.CalibrateAccel(6);
+    //mpu.CalibrateGyro(6);
 
     mpu.setDMPEnabled(true);
 
@@ -313,6 +314,10 @@ double findApproxPitch() {
     avgY = double(sums[0])/numSamples;
     avgZ = double(sums[1])/numSamples;
 
+//    Serial1.print(sums[0]);
+//    Serial1.print(", ");
+//    Serial1.println(sums[1]);
+
     // Use computed accelerations to approximate current turret pitch angle
     return asin(avgY/avgZ)*RAD_TO_DEG;
 }
@@ -327,6 +332,8 @@ void configTiltServo(){
     delay(500); // Wait to stop moving
             
     double approxPitch = findApproxPitch();
+    Serial1.print(F("approxPitch: "));
+    Serial1.println(approxPitch);
 
     // Find current servo angle from current pitch
     // Doesn't need to be exact, just need to know approximate starting point to prevent the servo trying to move too far and breaking stuff
@@ -339,9 +346,12 @@ void configTiltServo(){
     Serial1.println(F("Attempting to zero tilt..."));
     tiltServo.easeTo(int(round(turretAngle2ServoAngle(0.0))));
 
-    delay(1000); // Wait to stop moving
+    delay(500); // Wait to stop moving
 
     approxPitch = findApproxPitch(); // Recompute approx pitch
+
+    Serial1.print(F("approxPitch: "));
+    Serial1.println(approxPitch);
 
     if (abs(approxPitch) > 1.0) {
         // If approximate pitch close enough to level, reset DMP & exit
