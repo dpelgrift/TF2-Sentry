@@ -15,7 +15,7 @@ class Sentry(object):
     def __init__(self):
         # Create audio player object & play startup tone
         self.audio = AudioPlayer()
-        self.audio.playSpotSound(self)
+        self.audio.playSpotSound()
 
         # Create Motor Driver
         self.motors = MotorDriver()
