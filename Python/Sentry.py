@@ -149,9 +149,9 @@ class Sentry(object):
     def verifySerial(self):
         # Verify serial connection
         if cfg.TEST_MODE:
-            isVerified = self.sd.verifySerial('marco\n','polo')
-        else:
             isVerified = self.sd.verifySerial('test\n','testing')
+        else:
+            isVerified = self.sd.verifySerial('marco\n','polo')
         if not isVerified:
             print("Serial connection failed")
             while True:

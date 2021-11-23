@@ -9,7 +9,7 @@ import time
 class SerialDevice(object):
     def __init__(self):
         # self.comport = self.get_com_port()
-        self.serial_dev = serial.Serial('/dev/serial0', cfg.BAUDRATE, timeout=cfg.S_TIMEOUT)
+        self.serial_dev = serial.Serial('/dev/ttyAMA0', cfg.BAUDRATE, timeout=cfg.S_TIMEOUT)
         self.R_TIMEOUT= cfg.R_TIMEOUT
 
     def command(self, data_string):
