@@ -2,8 +2,8 @@ import Config as cfg
 import time
 
 testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher\n"+\
-                        "4: Test flywheels, 5: Test Itsybitsy, 6: Test IMU\n"+\
-                        "7: Test tilt servo, 8: Test pan stepper, 9: Test firing sequence"
+                        "4: Test flywheels, 5: Test Itsybitsy, 6: Test Camera\n"+\
+                        "7: Test firing sequence"
  
 
 def testingMode(sentry):
@@ -26,12 +26,8 @@ def testSelector(val,sentry):
     elif val == 5:
         testItsy(sentry)
     elif val == 6:
-        testIMU(sentry)
+        testCamera(sentry)
     elif val == 7:
-        testTilt(sentry)
-    elif val == 8:
-        testPan(sentry)
-    elif val == 9:
         testFiring(sentry)
 
 
@@ -66,14 +62,8 @@ def testItsy(sentry):
     sentry.relMove(float(tilt),float(yaw))
     time.sleep(1.0)
 
-def testIMU(sentry):
-    print()
-
-def testTilt(sentry):
-    print()
-
-def testPan(sentry):
-    print()
+def testCamera(sentry):
+    sentry.cam.getFrame()
 
 def testFiring(sentry):
     hopperVal = input("Specify input to hopper CR servo (-1 to 1): ")
