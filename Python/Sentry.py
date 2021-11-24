@@ -161,7 +161,8 @@ class Sentry(object):
         # Pass through configuration messages from ItsyBitsy
         while True:
             resp = self.sd.readSerialLine()
-            print(resp)
+            if resp != '':
+                print(resp)
             if 'Error' in resp:
                 self.errorDetected(resp)
             elif 'entering scanning mode' in resp:
