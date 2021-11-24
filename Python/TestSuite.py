@@ -63,7 +63,7 @@ def testFlywheels(sentry):
 def testItsy(sentry):
     yaw = input("Specify relative yaw (degrees): ")
     tilt = input("Specify relative tilt (degrees): ")
-    sentry.relMove(tilt,yaw)
+    sentry.relMove(float(tilt),float(yaw))
     time.sleep(1.0)
 
 def testIMU(sentry):
