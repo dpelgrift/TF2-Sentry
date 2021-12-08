@@ -49,6 +49,8 @@ class Sentry(object):
         targetLostTime = 0
         flyWheelsActive = False
         scanSoundTime = time.time()
+        if cfg.DEBUG_MODE:
+            print("Beginning main loop")
         while True:
             # Target search loop
             if not self.cam.targetLocked:
