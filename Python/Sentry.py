@@ -57,7 +57,7 @@ class Sentry(object):
                 #     doSendScanMessage = False
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
-                    self.audio.playSpotSound(self) # Play spot sound
+                    self.audio.playSpotSound() # Play spot sound
                     self.cam.lockOn(self,bbox,frame)
                     self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
