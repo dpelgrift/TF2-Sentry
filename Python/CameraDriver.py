@@ -14,7 +14,7 @@ class CameraDriver(object):
         self.isEnabled = False
         self.capture = None
 
-        self.tlast = 0
+        self.tlast = time.time()
         self.frameNum = 0
         self.targetLocked = False
 
@@ -61,8 +61,8 @@ class CameraDriver(object):
             (a, b, c, d) = (int(j) for j in bbox)
             
             if cfg.DEBUG_MODE:
-                self.tlast = tnow
                 print("[{}, {}] - {} fps".format(h, w, 1 / (tnow - self.tlast)))
+                self.tlast = tnow
                 
             if cfg.SAVE_IMGS:
                 frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
