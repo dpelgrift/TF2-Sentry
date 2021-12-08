@@ -18,7 +18,8 @@ class CameraDriver(object):
         self.frameNum = 0
         self.targetLocked = False
 
-        self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
+        # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
+        self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
         self.tracker = cv2.TrackerKCF_create()
         
         #self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
@@ -82,8 +83,13 @@ class CameraDriver(object):
 
         # If targets empty, return None
         if len(fullBodyTargets) == 0:
+            if cfg.DEBUG_MODE:
+                print("No targets")
+
             return None, frame
         if len(fullBodyTargets) == 1: # If only one target detected, return it
+            if cfg.DEBUG_MODE:
+                print("Target found")
             [a, b, c, d] = fullBodyTargets[0]
             return (a, b, c, d), frame
 
