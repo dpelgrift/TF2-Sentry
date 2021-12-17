@@ -21,6 +21,9 @@ class CameraDriver(object):
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
         self.tracker = cv2.TrackerKCF_create()
+        if cfg.DISP_FRAME:
+            self.rawFrameWin = cv2.namedWindow('rawframes')
+            self.targetFrameWin = cv2.namedWindow('targetframes')
         
         #self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
 
@@ -68,6 +71,8 @@ class CameraDriver(object):
             if cfg.SAVE_IMGS:
                 frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
+            if cfg.DISP_FRAME:
+                cv2.imshow(self.targetFrameWin,frame)
             return (h, w)
         else:
             print("Tracking failed")
@@ -113,6 +118,9 @@ class CameraDriver(object):
     def getFrame(self):
         _, frame = self.capture.read()
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        if cfg.DISP_FRAME:
+            cv2.imshow(self.rawFrameWin,frame)
 
         if cfg.SAVE_IMGS:
             self.frameNum += 1

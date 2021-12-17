@@ -14,8 +14,7 @@ from AudioPlayer import *
 class Sentry(object):
     def __init__(self):
         # Create audio player object & play startup tone
-        self.audio = AudioPlayer()
-        self.audio.playSpotSound()
+        playSpotSound()
 
         # Create Motor Driver
         self.motors = MotorDriver()
@@ -59,7 +58,15 @@ class Sentry(object):
                 #     doSendScanMessage = False
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
-                    self.audio.playSpotSound() # Play spot sound
+                    if cfg.DISP_FRAME:
+                        a = bbox[0]
+                        b = bbox[1]
+                        c = bbox[2]
+                        d = bbox[3]
+                        rectFrame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
+                        cv2.imshow(self.cam.targetFrameWin,rectFrame)
+
+                    playSpotSound() # Play spot sound
                     self.cam.lockOn(bbox,frame)
                     self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
@@ -69,7 +76,7 @@ class Sentry(object):
                 else:
                     # Play scan sound at regular intervals
                     if time.time() - scanSoundTime > cfg.scanSoundPlayInterval:
-                        self.audio.playScanSound()
+                        playScanSound()
                         scanSoundTime = time.time()
                     # If enought time passes without seeing a target, spool down flywheels if they are active
                     if time.time() - targetLostTime > cfg.spoolDownDelay and flyWheelsActive:
@@ -171,7 +178,7 @@ class Sentry(object):
                 break
 
     def errorDetected(self, errMsg):
-        self.audio.playErrorSound()
+        playErrorSound()
         print(errMsg)
         print('... exiting in 5 seconds')
         time.sleep(5)

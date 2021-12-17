@@ -14,8 +14,6 @@
 
 #include "defs.h"
 #include "Servo.h"
-// #include "string"
-//#define Serial1 Serial
 
 MPU6050 mpu;
 ServoEasing tiltServo;
@@ -65,17 +63,19 @@ float relPitchDeg;
 
 void setup() {
     Serial1.begin(BAUDRATE);
-    // Wait for verification string from pi
-    while (!Serial1.available()) {}
-    
+    Serial1.flush();
     // Search for verification string
+    while (Serial1.available() ==0) {}
     String val = Serial1.readStringUntil('\n');
-    if (val == F("test\n")) {
+    Serial1.flush();
+    if (val.startsWith("test")) {
+        delay(500);
         Serial1.println(F("testing"));
         testingMode = true;
-    } else if (val == F("marco\n")) {
+    } else if (val.startsWith("marco")) {
         Serial1.println(F("polo"));
     }
+    Serial1.println(val);
 
     initMPU();
 

@@ -1,5 +1,6 @@
 import Config as cfg
 import time
+from AudioPlayer import *
 
 testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher\n"+\
                         "4: Test flywheels, 5: Test Itsybitsy, 6: Test Camera\n"+\
@@ -33,10 +34,10 @@ def testSelector(val,sentry):
 
 def testAudio(sentry):
     print("Playing scan sound:")
-    sentry.audio.playScanSound()
+    playScanSound()
     time.sleep(1.0)
     print("Playing spot sound:")
-    sentry.audio.playSpotSound()
+    playSpotSound()
 
 def testHopper(sentry):
     val = input("Specify input to hopper CR servo (-1 to 1): ")
