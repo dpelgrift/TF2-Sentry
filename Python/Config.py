@@ -51,6 +51,7 @@ spoolDownDelay = 3
 scanSoundPlayInterval = 5
 
 """ PID PARAMS """
+DISABLE_PID = False
 kp = 1500/1000000
 ki = 350/1000000
 kd = 5/1000000

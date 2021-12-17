@@ -136,11 +136,13 @@ class Sentry(object):
             print('pitchPixErr: {}\tyawPixErr: {}'.format(pitchPixErr, yawPixErr))
             print('pitchDegErr: {}\tyawDegErr: {}'.format(pitchDegErr, yawDegErr))
 
-        pitchMoveDeg = self.pitchPid(pitchDegErr)
-        yawMoveDeg = self.yawPid(yawDegErr)
+        if cfg.DISABLE_PID:
+            pitchMoveDeg = pitchDegErr
+            yawMoveDeg = yawDegErr
+        else:
+            pitchMoveDeg = self.pitchPid(pitchDegErr)
+            yawMoveDeg = self.yawPid(yawDegErr)
 
-        # pitchMoveDeg = pitchDegErr
-        # yawMoveDeg = yawDegErr
 
         self.relMove(pitchMoveDeg,yawMoveDeg)
 
