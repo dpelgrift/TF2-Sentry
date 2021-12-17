@@ -4,7 +4,7 @@ import pygame
 
 
 
-def playScanSound(self):
+def playScanSound():
     #play_obj = self.spotSound.play()
     pygame.mixer.init()
     pygame.mixer.music.load(cfg.audioDir + "Sentry_scan.wav")
@@ -12,7 +12,7 @@ def playScanSound(self):
     #while pygame.mixer.music.get_busy():
     #    continue
 
-def playSpotSound(self):
+def playSpotSound():
     #play_obj = self.scanSound.play()
     pygame.mixer.init()
     pygame.mixer.music.load(cfg.audioDir + "Sentry_spot.wav")
@@ -20,7 +20,7 @@ def playSpotSound(self):
     #while pygame.mixer.music.get_busy():
     #    continue
 
-def playErrorSound(self):
+def playErrorSound():
     #play_obj = self.scanSound.play()
     pygame.mixer.init()
     pygame.mixer.music.load(cfg.audioDir + "Sentry_error.wav")
