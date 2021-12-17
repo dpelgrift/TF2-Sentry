@@ -59,13 +59,7 @@ class Sentry(object):
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
                     if cfg.DISP_FRAME:
-                        a = bbox[0]
-                        b = bbox[1]
-                        c = bbox[2]
-                        d = bbox[3]
-                        rectFrame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
-                        cv2.imshow('targetframes',rectFrame)
-                        cv2.waitKey(1)
+                        self.cam.dispTargetFrame(frame,bbox)
 
                     playSpotSound() # Play spot sound
                     self.cam.lockOn(bbox,frame)
@@ -91,9 +85,9 @@ class Sentry(object):
 
             h,w = self.cam.getTargetLocation()
 
-            if cfg.DEBUG_MODE:
-                # print('Checkpoint 2 time = {}'.format(time.time()))
-                print('Target Location: {}'.format((h,w)))
+            # if cfg.DEBUG_MODE:
+            #     # print('Checkpoint 2 time = {}'.format(time.time()))
+            #     print('Target Location: {}'.format((h,w)))
 
             # If target close enough, start firing
             if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
@@ -118,8 +112,8 @@ class Sentry(object):
             # If target visible, update position
             if h != 0 and w != 0:
                 pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
-                if cfg.DEBUG_MODE:
-                    print('PID: {}, {}'.format(pitchPid, yawPid))
+                # if cfg.DEBUG_MODE:
+                #     print('PID: {}, {}'.format(pitchPid, yawPid))
             else: # If target not visible
                 # Reset target lock status so that sentry will immediately look for new targets
                 self.cam.resetLock()
@@ -186,6 +180,8 @@ class Sentry(object):
     def wranglerMode(self):
         # TODO
         print()
+
+    
 
     def verifySerial(self):
         # Verify serial connection

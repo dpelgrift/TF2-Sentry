@@ -77,8 +77,7 @@ class CameraDriver(object):
                 frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
             if cfg.DISP_FRAME:
-                cv2.imshow('targetframes',frame)
-                cv2.waitKey(1)
+                self.dispTargetFrame(frame,[a,b,c,d])
             return (h, w)
         else:
             print("Tracking failed")
@@ -119,7 +118,15 @@ class CameraDriver(object):
         [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
         return (a, b, c, d), frame
 
-
+    def dispTargetFrame(self,frame,bbox):
+        a = bbox[0]
+        b = bbox[1]
+        c = bbox[2]
+        d = bbox[3]
+        rectFrame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
+        rectFrame = cv2.circle(frame,(cfg.wTargetCenter, cfg.hTargetCenter),5,(0.1,0.1,0.1),thickness=3)
+        cv2.imshow('targetframes',rectFrame)
+        cv2.waitKey(1)
 
     def getFrame(self):
         _, frame = self.capture.read()
