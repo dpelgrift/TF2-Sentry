@@ -142,11 +142,11 @@ class Sentry(object):
             print('pitchPixErr: {}\tyawPixErr: {}'.format(pitchPixErr, yawPixErr))
             print('pitchDegErr: {}\tyawDegErr: {}'.format(pitchDegErr, yawDegErr))
 
-        # pitchMoveDeg = self.pitchPid(pitchDegErr)
-        # yawMoveDeg = self.yawPid(yawDegErr)
+        pitchMoveDeg = self.pitchPid(pitchDegErr)
+        yawMoveDeg = self.yawPid(yawDegErr)
 
-        pitchMoveDeg = pitchDegErr
-        yawMoveDeg = yawDegErr
+        # pitchMoveDeg = pitchDegErr
+        # yawMoveDeg = yawDegErr
 
         self.relMove(pitchMoveDeg,yawMoveDeg)
 
@@ -166,8 +166,18 @@ class Sentry(object):
         pitchDeg = round(pitchDeg,2)
         yawDeg = round(yawDeg,2)
 
+        if cfg.DEBUG_MODE:
+            print('Checkpoint 3a time = {}'.format(time.time()))
+
         command = '<{},{}>'.format(yawDeg,pitchDeg)
+        if cfg.DEBUG_MODE:
+            print('Sending Command: {}'.format(command))
+
+
         self.sd.command(command)
+
+        if cfg.DEBUG_MODE:
+            print('Checkpoint 3b time = {}'.format(time.time()))
 
     def resetPid(self):
         self.pitchPid.reset()
