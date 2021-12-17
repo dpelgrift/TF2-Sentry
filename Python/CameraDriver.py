@@ -123,6 +123,7 @@ class CameraDriver(object):
             print('frame shape: ', np.shape(frame))
 
             cv2.imshow('rawframes',frame)
+            cv2.waitKey(1)
             # cv2.imshow(self.rawFrameWin,frame)
 
         if cfg.SAVE_IMGS:
