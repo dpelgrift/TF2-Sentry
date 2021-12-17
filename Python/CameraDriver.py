@@ -72,7 +72,7 @@ class CameraDriver(object):
                 frame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
             if cfg.DISP_FRAME:
-                cv2.imshow(self.targetFrameWin,frame)
+                cv2.imshow('targetframes',frame)
             return (h, w)
         else:
             print("Tracking failed")
@@ -120,8 +120,6 @@ class CameraDriver(object):
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if cfg.DISP_FRAME:
-            print('frame shape: ', np.shape(frame))
-
             cv2.imshow('rawframes',frame)
             cv2.waitKey(1)
             # cv2.imshow(self.rawFrameWin,frame)
