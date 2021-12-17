@@ -86,13 +86,13 @@ class Sentry(object):
                         flyWheelsActive = False
                     continue
             
-            if cfg.DEBUG_MODE:
-                print('Checkpoint 1 time = {}'.format(time.time()))
+            # if cfg.DEBUG_MODE:
+            #     print('Checkpoint 1 time = {}'.format(time.time()))
 
             h,w = self.cam.getTargetLocation()
 
             if cfg.DEBUG_MODE:
-                print('Checkpoint 2 time = {}'.format(time.time()))
+                # print('Checkpoint 2 time = {}'.format(time.time()))
                 print('Target Location: {}'.format((h,w)))
 
             # If target close enough, start firing
@@ -112,8 +112,8 @@ class Sentry(object):
                 isFiring = False
                 firingTime = None
 
-            if cfg.DEBUG_MODE:
-                print('Checkpoint 3 time = {}'.format(time.time()))
+            # if cfg.DEBUG_MODE:
+            #     print('Checkpoint 3 time = {}'.format(time.time()))
 
             # If target visible, update position
             if h != 0 and w != 0:
@@ -127,8 +127,8 @@ class Sentry(object):
                 if cfg.DEBUG_MODE:
                     print('Resetting lock')
                 
-            if cfg.DEBUG_MODE:
-                print('Checkpoint 4 time = {}'.format(time.time()))   
+            # if cfg.DEBUG_MODE:
+            #     print('Checkpoint 4 time = {}'.format(time.time()))   
             
 
     def updateTarget(self,pitchPixErr,yawPixErr):
@@ -166,8 +166,8 @@ class Sentry(object):
         pitchDeg = round(pitchDeg,2)
         yawDeg = round(yawDeg,2)
 
-        if cfg.DEBUG_MODE:
-            print('Checkpoint 3a time = {}'.format(time.time()))
+        # if cfg.DEBUG_MODE:
+        #     print('Checkpoint 3a time = {}'.format(time.time()))
 
         command = '<{},{}>'.format(yawDeg,pitchDeg)
         if cfg.DEBUG_MODE:
@@ -176,8 +176,8 @@ class Sentry(object):
 
         self.sd.command(command)
 
-        if cfg.DEBUG_MODE:
-            print('Checkpoint 3b time = {}'.format(time.time()))
+        # if cfg.DEBUG_MODE:
+        #     print('Checkpoint 3b time = {}'.format(time.time()))
 
     def resetPid(self):
         self.pitchPid.reset()
