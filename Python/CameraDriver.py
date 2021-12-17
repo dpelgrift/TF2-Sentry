@@ -93,13 +93,13 @@ class CameraDriver(object):
 
         # If targets empty, return None
         if len(fullBodyTargets) == 0:
-            if cfg.DEBUG_MODE:
-                print("No targets")
+            # if cfg.DEBUG_MODE:
+            #     print("No targets")
 
             return None, frame
         if len(fullBodyTargets) == 1: # If only one target detected, return it
-            if cfg.DEBUG_MODE:
-                print("Target found")
+            # if cfg.DEBUG_MODE:
+            #     print("Target found")
             [a, b, c, d] = fullBodyTargets[0]
             return (a, b, c, d), frame
 
