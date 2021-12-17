@@ -47,12 +47,12 @@ class CameraDriver(object):
     def resetLock(self):
         self.tracker.clear()
         self.tracker = cv2.TrackerKCF_create()
-        self.lockedOn = False
+        self.targetLocked = False
 
     def lockOn(self,targetBox,frame):
         self.resetLock()
         self.tracker.init(frame,targetBox)
-        self.lockedOn = True
+        self.targetLocked = True
 
     def getTargetLocation(self):
         frame = self.getFrame()
@@ -124,7 +124,7 @@ class CameraDriver(object):
         c = bbox[2]
         d = bbox[3]
         rectFrame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
-        rectFrame = cv2.circle(frame,(cfg.wTargetCenter, cfg.hTargetCenter),5,(0.1,0.1,0.1),thickness=3)
+        rectFrame = cv2.circle(frame,(cfg.wTargetCenter, cfg.hTargetCenter),3,(0.1,0.1,0.1),thickness=3)
         cv2.imshow('targetframes',rectFrame)
         cv2.waitKey(1)
 
