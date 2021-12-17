@@ -120,6 +120,8 @@ class CameraDriver(object):
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if cfg.DISP_FRAME:
+            print('frame shape: ', np.shape(frame))
+
             cv2.imshow(self.rawFrameWin,frame)
 
         if cfg.SAVE_IMGS:
