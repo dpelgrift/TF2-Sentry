@@ -131,9 +131,15 @@ class Sentry(object):
             
 
     def updateTarget(self,pitchPixErr,yawPixErr):
+        
+
         # Convert pixel errors to degree errors
         pitchDegErr = pitchPixErr*cfg.horizFov/cfg.videoResolution[0]
         yawDegErr = yawPixErr*cfg.vertFov/cfg.videoResolution[1]
+
+        if cfg.DEBUG_MODE:
+            print('pitchPixErr: {}\tyawPixErr: {}'.format(pitchPixErr, yawPixErr))
+            print('pitchDegErr: {}\tyawDegErr: {}'.format(pitchDegErr, yawDegErr))
 
         pitchMoveDeg = self.pitchPid(pitchDegErr)
         yawMoveDeg = self.yawPid(yawDegErr)
