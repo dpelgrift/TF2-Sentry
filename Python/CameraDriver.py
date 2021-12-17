@@ -55,7 +55,11 @@ class CameraDriver(object):
 
     def getTargetLocation(self):
         frame = self.getFrame()
+        if cfg.DEBUG_MODE:
+            tmpTime = time.time()
         ok, bbox = self.tracker.update(frame)
+        if cfg.DEBUG_MODE:
+            print('Tracker update time: ', time.time() - tmpTime)
 
         tnow = time.time()
         if ok:
