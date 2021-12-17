@@ -87,6 +87,9 @@ class Sentry(object):
 
             h,w = self.cam.getTargetLocation()
 
+            if cfg.DEBUG_MODE:
+                print('Target Location: {}'.format((h,w)))
+
             # If target close enough, start firing
             if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
                 w-cfg.wTargetCenter < cfg.onTargetPixelProximity:
@@ -114,6 +117,8 @@ class Sentry(object):
                 # Reset target lock status so that sentry will immediately look for new targets
                 self.cam.resetLock()
                 targetLostTime = time.time()
+                if cfg.DEBUG_MODE:
+                    print('Resetting lock')
                 
                 
             
