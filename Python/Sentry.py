@@ -65,6 +65,7 @@ class Sentry(object):
                         d = bbox[3]
                         rectFrame = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
                         cv2.imshow('targetframes',rectFrame)
+                        cv2.waitKey(1)
 
                     playSpotSound() # Play spot sound
                     self.cam.lockOn(bbox,frame)

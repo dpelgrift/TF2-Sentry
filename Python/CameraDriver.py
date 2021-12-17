@@ -78,6 +78,7 @@ class CameraDriver(object):
                 self.saveImage(frame, 'cv_{}.jpg'.format(self.frameNum))
             if cfg.DISP_FRAME:
                 cv2.imshow('targetframes',frame)
+                cv2.waitKey(1)
             return (h, w)
         else:
             print("Tracking failed")
