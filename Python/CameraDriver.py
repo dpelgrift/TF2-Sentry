@@ -22,8 +22,8 @@ class CameraDriver(object):
         self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
         self.tracker = cv2.TrackerKCF_create()
         if cfg.DISP_FRAME:
-            self.rawFrameWin = cv2.namedWindow('rawframes')
-            self.targetFrameWin = cv2.namedWindow('targetframes')
+            self.rawFrameWin = cv2.namedWindow('rawframes',flags=cv2.WINDOW_AUTOSIZE)
+            self.targetFrameWin = cv2.namedWindow('targetframes',flags=cv2.WINDOW_AUTOSIZE)
         
         #self.upperBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
 
@@ -122,7 +122,8 @@ class CameraDriver(object):
         if cfg.DISP_FRAME:
             print('frame shape: ', np.shape(frame))
 
-            cv2.imshow(self.rawFrameWin,frame)
+            cv2.imshow('rawframes',frame)
+            # cv2.imshow(self.rawFrameWin,frame)
 
         if cfg.SAVE_IMGS:
             self.frameNum += 1
