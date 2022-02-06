@@ -51,7 +51,7 @@ spoolDownDelay = 3
 scanSoundPlayInterval = 5
 
 """ PID PARAMS """
-DISABLE_PID = False
+DISABLE_PID = True
 kp = 1500/1000000
 ki = 350/1000000
 kd = 5/1000000
@@ -68,8 +68,8 @@ R_TIMEOUT = 10
 
 """ DEBUG """
 DEBUG_MODE = True
-TEST_MODE = True
+TEST_MODE = False
 SAVE_IMGS = True
 SAVE_VID = True
-DISP_FRAME = True
+DISP_FRAME = False
 BYPASS_SERIAL_VERIFY = False

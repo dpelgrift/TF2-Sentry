@@ -62,6 +62,11 @@ float relYawDeg;
 float relPitchDeg;
 
 void setup() {
+    if (DO_PRINT_DEBUG){
+        DebugSerial.begin(BAUDRATE);
+    }
+
+
     Serial1.begin(BAUDRATE);
     Serial1.flush();
     // Search for verification string
@@ -75,7 +80,9 @@ void setup() {
     } else if (val.startsWith("marco")) {
         Serial1.println(F("polo"));
     }
-    Serial1.println(val);
+    if (DO_PRINT_DEBUG){
+        DebugSerial.println(val);
+    }
 
     initMPU();
 
@@ -100,6 +107,9 @@ void loop() {
 
     // If new data available
     if (newData) {
+        if (DO_PRINT_DEBUG)
+            DebugSerial.println("Parsing string");
+
         strcpy(tempChars, receivedChars);
         parseData(); // Parse movement commands
         newData = false;
@@ -137,11 +147,15 @@ void loop() {
 
     // If enough time has pased since the last update, reenter scanning mode
     if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS)
+        if (DO_PRINT_DEBUG)
+            DebugSerial.println("Restarting scanv");
         startScanFlag = true;
 
 }
 
 void enterScanningLoop() {
+    if (DO_PRINT_DEBUG)
+        DebugSerial.println(F("Entering scanning loop"));
 
     // Reset to 0,0
     stepper.moveTo(0);
@@ -179,6 +193,9 @@ void enterScanningLoop() {
         recvWithStartEndMarkers();
         // Break out if command received from pi
         if (newData)
+            if (DO_PRINT_DEBUG){
+                DebugSerial.println(F("Data received, exiting scan"));
+            }
             break;
     }
 }
@@ -354,13 +371,13 @@ void configTiltServo(){
     Serial1.println(approxPitch);
 
     if (abs(approxPitch) > 1.0) {
-        // If approximate pitch close enough to level, reset DMP & exit
+        
         Serial1.print(F("Error: Zeroing unsuccessful, approxPitch = "));
         Serial1.println(approxPitch);
         while (true) {}
     }
     
-    // Otherwise, reset DMP & exit
+    // If approximate pitch close enough to level, reset DMP & exit
     mpu.resetDMP();
     mpu.resetFIFO();
     mpu.getIntStatus();
@@ -411,4 +428,8 @@ void parseData() {
     strtokIndx = strtok(NULL, ",");         // get the pitch
     relPitchDeg = atof(strtokIndx);         // convert to a float
 
+    if (DO_PRINT_DEBUG){
+        DebugSerial.println(relYawDeg);
+        DebugSerial.println(relPitchDeg);
+    }
 }

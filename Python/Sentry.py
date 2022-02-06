@@ -53,9 +53,7 @@ class Sentry(object):
         while True:
             # Target search loop
             if not self.cam.targetLocked:
-                # if doSendScanMessage:
-                #     self.sd.command('S0')
-                #     doSendScanMessage = False
+                
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
                     if cfg.DISP_FRAME:
@@ -79,15 +77,9 @@ class Sentry(object):
                         self.motors.flyWheels.off() # Spool down flywheels
                         flyWheelsActive = False
                     continue
-            
-            # if cfg.DEBUG_MODE:
-            #     print('Checkpoint 1 time = {}'.format(time.time()))
 
             h,w = self.cam.getTargetLocation()
 
-            # if cfg.DEBUG_MODE:
-            #     # print('Checkpoint 2 time = {}'.format(time.time()))
-            #     print('Target Location: {}'.format((h,w)))
 
             # If target close enough, start firing
             if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
@@ -106,14 +98,11 @@ class Sentry(object):
                 isFiring = False
                 firingTime = None
 
-            # if cfg.DEBUG_MODE:
-            #     print('Checkpoint 3 time = {}'.format(time.time()))
-
             # If target visible, update position
             if h != 0 and w != 0:
                 pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
-                # if cfg.DEBUG_MODE:
-                #     print('PID: {}, {}'.format(pitchPid, yawPid))
+                if cfg.DEBUG_MODE:
+                    print('PID: {}, {}'.format(pitchPid, yawPid))
             else: # If target not visible
                 # Reset target lock status so that sentry will immediately look for new targets
                 self.cam.resetLock()
@@ -121,8 +110,6 @@ class Sentry(object):
                 if cfg.DEBUG_MODE:
                     print('Resetting lock')
                 
-            # if cfg.DEBUG_MODE:
-            #     print('Checkpoint 4 time = {}'.format(time.time()))   
             
 
     def updateTarget(self,pitchPixErr,yawPixErr):

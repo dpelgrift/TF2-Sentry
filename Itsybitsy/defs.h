@@ -51,3 +51,6 @@
 // Serial params
 #define BAUDRATE 115200
 #define MAX_MSG_LEN 100
+
+#define DO_PRINT_DEBUG true
+#define DebugSerial Serial
