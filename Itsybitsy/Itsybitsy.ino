@@ -62,23 +62,27 @@ float relYawDeg;
 float relPitchDeg;
 
 void setup() {
+    
     if (DO_PRINT_DEBUG){
         DebugSerial.begin(BAUDRATE);
+        DebugSerial.flush();
+        delay(100);
+        DebugSerial.println(F("Program start"));
     }
 
 
-    Serial1.begin(BAUDRATE);
-    Serial1.flush();
+    DataSerial.begin(BAUDRATE);
+    DataSerial.flush();
     // Search for verification string
-    while (Serial1.available() ==0) {}
-    String val = Serial1.readStringUntil('\n');
-    Serial1.flush();
+    while (DataSerial.available() == 0) {}
+    String val = DataSerial.readStringUntil('\n');
+    DataSerial.flush();
     if (val.startsWith("test")) {
         delay(500);
-        Serial1.println(F("testing"));
+        DataSerial.println(F("testing"));
         testingMode = true;
     } else if (val.startsWith("marco")) {
-        Serial1.println(F("polo"));
+        DataSerial.println(F("polo"));
     }
     if (DO_PRINT_DEBUG){
         DebugSerial.println(val);
@@ -94,7 +98,7 @@ void setup() {
     stepper.setAcceleration(STEPPER_ACCEL);
 
 
-    Serial1.println(F("Configuration successful, entering scanning mode"));
+    DataSerial.println(F("Configuration successful, entering scanning mode"));
 }
 
 void loop() {
@@ -108,23 +112,30 @@ void loop() {
     // If new data available
     if (newData) {
         if (DO_PRINT_DEBUG)
-            DebugSerial.println("Parsing string");
+            DataSerial.println("Parsing string");
 
         strcpy(tempChars, receivedChars);
         parseData(); // Parse movement commands
         newData = false;
 
         // Update position estimate
-        if (updateCurrTiltYaw()) {
-            stepper.setCurrentPosition(currTurretYawSteps);
-        }
-
+//        if (updateCurrTiltYaw()) {
+//            stepper.setCurrentPosition(currTurretYawSteps);
+//        }
+        
         // Compute absolute target position from relative angles & current angles
         currTargetYawAngleDeg = currTurretYawAngleDeg + relYawDeg;
         currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relPitchDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE); // Bound pitch to prevent breaking stuff
         if (DO_BOUND_YAW) { // Optionally bound yaw
             currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
         }
+
+        DataSerial.print(F("currTargetYawAngleDeg = "));
+        DataSerial.println(currTargetYawAngleDeg);
+        DataSerial.print(F("currTargetPitchAngleDeg = "));
+        DataSerial.println(currTargetPitchAngleDeg);
+
+        
 
         // Update current stepper target
         stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
@@ -136,8 +147,14 @@ void loop() {
 
     // Update position estimate
     if (updateCurrTiltYaw()) {
+        DataSerial.println(F("Turret Pitch/Yaw = "));
+        DataSerial.println(currTurretPitchAngleDeg);
+        DataSerial.println(currTurretYawAngleDeg);
+        
         stepper.setCurrentPosition(currTurretYawSteps);
     }
+
+    
 
     stepper.run();
 
@@ -145,58 +162,92 @@ void loop() {
     // Read more data from serial buffer
     recvWithStartEndMarkers();
 
-    // If enough time has pased since the last update, reenter scanning mode
-    if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS)
-        if (DO_PRINT_DEBUG)
-            DebugSerial.println("Restarting scanv");
-        startScanFlag = true;
+    
 
+
+    // If enough time has pased since the last update, reenter scanning mode
+    if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS){
+//        if (DO_PRINT_DEBUG)
+//            DataSerial.println("Restarting scan");
+        startScanFlag = true;
+    }
 }
 
 void enterScanningLoop() {
     if (DO_PRINT_DEBUG)
-        DebugSerial.println(F("Entering scanning loop"));
+        DataSerial.println(F("Entering scanning loop"));
 
     // Reset to 0,0
     stepper.moveTo(0);
+    stepper.run();
     tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
+    DataSerial.println(F("Resetting zero"));
     while (stepper.distanceToGo() != 0) {
-        if (updateCurrTiltYaw()) {
-            stepper.setCurrentPosition(currTurretYawSteps);
-        }
+        
+      
+//        if (updateCurrTiltYaw()) {
+//            stepper.setCurrentPosition(currTurretYawSteps);
+//        }
         
         stepper.run();
 
         // Read more data from serial buffer
         recvWithStartEndMarkers();
+
+        DataSerial.print(F("newData = "));
+        DataSerial.println(newData);
+
+        DataSerial.print(F("Distance to go: "));
+        DataSerial.println(stepper.distanceToGo());
+        
         // Break out if command received from pi while resetting
-        if (newData)
+        if (newData){
+            DataSerial.println(F("Data received, exiting scan"));
+            lastUpdateTime_ms = millis();
             return;
+        }
     }
 
+    DataSerial.println(F("Finished resetting zero"));
+
     // Bounce between +-X degrees yaw to scan for targets
-    int targetPos = (SCAN_YAW_WIDTH_DEG/2)/360 * STEPS_PER_REV;
+    int targetPos = int((SCAN_YAW_WIDTH_DEG/2.0)/360.0 * STEPS_PER_REV);
+
+    DataSerial.print(F("Target Position: "));
+    DataSerial.println(targetPos);
 
     stepper.moveTo(targetPos);
+    DataSerial.println(F("Entering bounce loop"));
     while (true) {
-        if (stepper.distanceToGo() == 0)
-            stepper.moveTo(-stepper.currentPosition());
-
+        
         // Keep stepper position updated by MPU to correct for any missed steps
-        if (updateCurrTiltYaw()) {
-            stepper.setCurrentPosition(currTurretYawSteps);
-        }
+//        if (updateCurrTiltYaw()) {
+//            stepper.setCurrentPosition(currTurretYawSteps);
+//        }
         
         stepper.run();
 
         // Read more data from serial buffer
         recvWithStartEndMarkers();
+
+//        DataSerial.print(F("newData = "));
+//        DataSerial.println(newData);
+//
+//        DataSerial.print(F("Distance to go: "));
+//        DataSerial.println(stepper.distanceToGo());
+
+        
         // Break out if command received from pi
-        if (newData)
-            if (DO_PRINT_DEBUG){
-                DebugSerial.println(F("Data received, exiting scan"));
-            }
+        if (newData){
+            if (DO_PRINT_DEBUG)
+                DataSerial.println(F("Data received, exiting scan"));
+            lastUpdateTime_ms = millis();
             break;
+        }
+        if (stepper.distanceToGo() == 0){
+            DataSerial.println(F("Switching direction"));
+            stepper.moveTo(-stepper.currentPosition());
+        }
     }
 }
 
@@ -251,24 +302,24 @@ void initMPU() {
     Wire.setClock(400000); // 400kHz I2C clock.
 
     // initialize device
-    Serial1.println(F("Initializing MPU..."));
+    DataSerial.println(F("Initializing MPU..."));
     mpu.initialize();
     pinMode(INTERRUPT_PIN, INPUT);
 
     // verify connection
-    Serial1.println(F("Testing MPU connection..."));
+    DataSerial.println(F("Testing MPU connection..."));
     bool connectionStatus = mpu.testConnection();
-    Serial1.println(connectionStatus ? F("MPU6050 connection successful") : F("Error: MPU6050 connection failed"));
+    DataSerial.println(connectionStatus ? F("MPU6050 connection successful") : F("Error: MPU6050 connection failed"));
     while (!connectionStatus) {}
 
     // load and configure the DMP
     devStatus = mpu.dmpInitialize();
 
     // Return status code
-    Serial1.print(F("DMP Status: "));
-    Serial1.println(devStatus);
+    DataSerial.print(F("DMP Status: "));
+    DataSerial.println(devStatus);
     if (devStatus != 0) {
-        Serial1.println(F("Error: DMP init failed"));
+        DataSerial.println(F("Error: DMP init failed"));
         while (true) {}
     }
 
@@ -310,7 +361,7 @@ bool updateCurrTiltYaw() {
 }
 
 double findApproxPitch() {
-    int numSamples = 1000;
+    int numSamples = 100;
     long sums[] = {0,0};
     double avgY;
     double avgZ;
@@ -331,9 +382,9 @@ double findApproxPitch() {
     avgY = double(sums[0])/numSamples;
     avgZ = double(sums[1])/numSamples;
 
-//    Serial1.print(sums[0]);
-//    Serial1.print(", ");
-//    Serial1.println(sums[1]);
+//    DataSerial.print(sums[0]);
+//    DataSerial.print(", ");
+//    DataSerial.println(sums[1]);
 
     // Use computed accelerations to approximate current turret pitch angle
     return asin(avgY/avgZ)*RAD_TO_DEG;
@@ -341,7 +392,7 @@ double findApproxPitch() {
 
 void configTiltServo(){
 
-    Serial1.println(F("Initializing Tilt Servo..."));
+    DataSerial.println(F("Initializing Tilt Servo..."));
     // Setup servo
     tiltServo.attach(SERVO_PIN,TILT_MIN_PULSE,TILT_MAX_PULSE);
     tiltServo.setSpeed(TILT_SPEED_DEG_PER_SEC);
@@ -349,8 +400,8 @@ void configTiltServo(){
     delay(500); // Wait to stop moving
             
     double approxPitch = findApproxPitch();
-    Serial1.print(F("approxPitch: "));
-    Serial1.println(approxPitch);
+    DataSerial.print(F("approxPitch: "));
+    DataSerial.println(approxPitch);
 
     // Find current servo angle from current pitch
     // Doesn't need to be exact, just need to know approximate starting point to prevent the servo trying to move too far and breaking stuff
@@ -360,20 +411,20 @@ void configTiltServo(){
     servoAngleOffset = thetaCS - currServoAngle;
 
     // Try to set tilt to zero
-    Serial1.println(F("Attempting to zero tilt..."));
+    DataSerial.println(F("Attempting to zero tilt..."));
     tiltServo.easeTo(int(round(turretAngle2ServoAngle(0.0))));
 
     delay(500); // Wait to stop moving
 
     approxPitch = findApproxPitch(); // Recompute approx pitch
 
-    Serial1.print(F("approxPitch: "));
-    Serial1.println(approxPitch);
+    DataSerial.print(F("approxPitch: "));
+    DataSerial.println(approxPitch);
 
     if (abs(approxPitch) > 1.0) {
         
-        Serial1.print(F("Error: Zeroing unsuccessful, approxPitch = "));
-        Serial1.println(approxPitch);
+        DataSerial.print(F("Error: Zeroing unsuccessful, approxPitch = "));
+        DataSerial.println(approxPitch);
         while (true) {}
     }
     
@@ -393,8 +444,15 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char rc;
 
-    while (Serial1.available() > 0 && newData == false) {
-        rc = Serial1.read();
+//    if (DO_PRINT_DEBUG)
+//        DataSerial.println(F("Checking for new characters"));
+//            
+
+    while (DataSerial.available() > 0 && newData == false) {
+        rc = DataSerial.read();
+
+        if (DO_PRINT_DEBUG)
+          DataSerial.println(F("Checking"));
 
         if (recvInProgress == true) {
             if (rc != endMarker) {
@@ -406,6 +464,10 @@ void recvWithStartEndMarkers() {
             }
             else {
                 receivedChars[ndx] = '\0'; // terminate the string
+                if (DO_PRINT_DEBUG){
+                  DataSerial.println(F("End character received"));
+                  DataSerial.println(receivedChars);
+                }
                 recvInProgress = false;
                 ndx = 0;
                 newData = true;
