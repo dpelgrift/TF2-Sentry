@@ -109,7 +109,7 @@ void loop() {
         startScanFlag = false;
     }
 
-    // If new data available
+    // If new target position available
     if (newData) {
         if (DO_PRINT_DEBUG)
             DataSerial.println("Parsing string");
@@ -119,9 +119,9 @@ void loop() {
         newData = false;
 
         // Update position estimate
-//        if (updateCurrTiltYaw()) {
-//            stepper.setCurrentPosition(currTurretYawSteps);
-//        }
+        if (updateCurrTiltYaw()) {
+            stepper.setCurrentPosition(currTurretYawSteps);
+        }
         
         // Compute absolute target position from relative angles & current angles
         currTargetYawAngleDeg = currTurretYawAngleDeg + relYawDeg;
@@ -131,9 +131,14 @@ void loop() {
         }
 
         DataSerial.print(F("currTargetYawAngleDeg = "));
-        DataSerial.println(currTargetYawAngleDeg);
+        DataSerial.print(currTargetYawAngleDeg);
+        DataSerial.print(F("\tSteps = "));
+        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
+        
         DataSerial.print(F("currTargetPitchAngleDeg = "));
-        DataSerial.println(currTargetPitchAngleDeg);
+        DataSerial.print(currTargetPitchAngleDeg);
+        DataSerial.print(F("\tServo Angle = "));
+        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
 
         
 
@@ -167,8 +172,8 @@ void loop() {
 
     // If enough time has pased since the last update, reenter scanning mode
     if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS){
-//        if (DO_PRINT_DEBUG)
-//            DataSerial.println("Restarting scan");
+        if (DO_PRINT_DEBUG)
+            DataSerial.println("Restarting scan");
         startScanFlag = true;
     }
 }
@@ -256,11 +261,16 @@ int yawAngle2Steps(double yaw) {
 }
 
 double servoAngle2TurretAngle(double servoAngleDeg) {
-    return PITCH_2_TILTANGLE_OFFSET - convertLinkageAngle(servoAngleDeg + servoAngleOffset,LIFTER1_LEN,servo2TiltAxisLen,LIFTERBASE_2_TILTSHAFT_LEN,LIFTER2_LEN);
+
+    double thetaCS = 360 - SERVO_2_TILTSHAFT_ANGLE - servoAngleDeg - servoAngleOffset;
+  
+    return PITCH_2_TILTANGLE_OFFSET - convertLinkageAngle(thetaCS,LIFTER1_LEN,servo2TiltAxisLen,LIFTERBASE_2_TILTSHAFT_LEN,LIFTER2_LEN);
 }
 
 double turretAngle2ServoAngle(double turretAngleDeg) {
-    return servoAngleOffset + convertLinkageAngle(PITCH_2_TILTANGLE_OFFSET-turretAngleDeg,LIFTERBASE_2_TILTSHAFT_LEN,servo2TiltAxisLen,LIFTER1_LEN,LIFTER2_LEN);
+    double thetaCS = convertLinkageAngle(PITCH_2_TILTANGLE_OFFSET-turretAngleDeg,LIFTERBASE_2_TILTSHAFT_LEN,servo2TiltAxisLen,LIFTER1_LEN,LIFTER2_LEN);
+
+    return 360 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - servoAngleOffset;
 }
 
 void setTiltAngle(double turretAngle) {
@@ -350,8 +360,8 @@ bool updateCurrTiltYaw() {
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
         //TODO: Ensure that euler angles match up correctly to axes of MPU
-        currTurretPitchAngleDeg = ypr[0] * RAD_TO_DEG;
-        currTurretYawAngleDeg= ypr[2] * RAD_TO_DEG * -1.0;
+        currTurretPitchAngleDeg = ypr[2] * RAD_TO_DEG * -1.0;
+        currTurretYawAngleDeg= ypr[0] * RAD_TO_DEG;
 
         currTurretYawSteps = yawAngle2Steps(currTurretYawAngleDeg);
 
@@ -361,7 +371,7 @@ bool updateCurrTiltYaw() {
 }
 
 double findApproxPitch() {
-    int numSamples = 100;
+    int numSamples = 500;
     long sums[] = {0,0};
     double avgY;
     double avgZ;
@@ -387,7 +397,7 @@ double findApproxPitch() {
 //    DataSerial.println(sums[1]);
 
     // Use computed accelerations to approximate current turret pitch angle
-    return asin(avgY/avgZ)*RAD_TO_DEG;
+    return -asin(avgY/avgZ)*RAD_TO_DEG;
 }
 
 void configTiltServo(){
@@ -396,19 +406,43 @@ void configTiltServo(){
     // Setup servo
     tiltServo.attach(SERVO_PIN,TILT_MIN_PULSE,TILT_MAX_PULSE);
     tiltServo.setSpeed(TILT_SPEED_DEG_PER_SEC);
-    tiltServo.easeTo(int(round(tiltPulse2Angle(TILT_INIT_PULSE))));
-    delay(500); // Wait to stop moving
-            
+    int initAngle = int(round(tiltPulse2Angle(TILT_INIT_PULSE)));
+    tiltServo.write(initAngle);
+    tiltServo.easeTo(initAngle);
+
+    
     double approxPitch = findApproxPitch();
     DataSerial.print(F("approxPitch: "));
     DataSerial.println(approxPitch);
 
     // Find current servo angle from current pitch
     // Doesn't need to be exact, just need to know approximate starting point to prevent the servo trying to move too far and breaking stuff
-    double thetaCS = turretAngle2ServoAngle(approxPitch);
+    double thetaCS = convertLinkageAngle(PITCH_2_TILTANGLE_OFFSET-approxPitch,LIFTERBASE_2_TILTSHAFT_LEN,servo2TiltAxisLen,LIFTER1_LEN,LIFTER2_LEN);
     double currServoAngle = tiltPulse2Angle(TILT_INIT_PULSE);
 
-    servoAngleOffset = thetaCS - currServoAngle;
+    servoAngleOffset = 360.0 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - currServoAngle;
+
+    if (DO_PRINT_DEBUG) {
+      DataSerial.print(F("thetaCS: "));
+      DataSerial.println(thetaCS);
+
+      DataSerial.print(F("currServoAngle: "));
+      DataSerial.println(currServoAngle);
+
+      DataSerial.print(F("servoAngleOffset: "));
+      DataSerial.println(servoAngleOffset);
+
+      DataSerial.print(F("zero Angle: "));
+      DataSerial.println(((turretAngle2ServoAngle(0.0))));
+
+      DataSerial.print(F("30 deg Angle: "));
+      DataSerial.println(((turretAngle2ServoAngle(30.0))));
+
+      DataSerial.print(F("-10 deg Angle: "));
+      DataSerial.println(((turretAngle2ServoAngle(-10.0))));
+    }
+
+    
 
     // Try to set tilt to zero
     DataSerial.println(F("Attempting to zero tilt..."));
@@ -421,7 +455,7 @@ void configTiltServo(){
     DataSerial.print(F("approxPitch: "));
     DataSerial.println(approxPitch);
 
-    if (abs(approxPitch) > 1.0) {
+    if (abs(approxPitch) > 3.0) {
         
         DataSerial.print(F("Error: Zeroing unsuccessful, approxPitch = "));
         DataSerial.println(approxPitch);
@@ -451,8 +485,8 @@ void recvWithStartEndMarkers() {
     while (DataSerial.available() > 0 && newData == false) {
         rc = DataSerial.read();
 
-        if (DO_PRINT_DEBUG)
-          DataSerial.println(F("Checking"));
+//        if (DO_PRINT_DEBUG)
+//          DataSerial.println(F("Checking"));
 
         if (recvInProgress == true) {
             if (rc != endMarker) {
