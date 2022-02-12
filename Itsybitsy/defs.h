@@ -44,13 +44,14 @@
 #define TILT_MIN_ANGLE -10
 #define TILT_MAX_ANGLE 30
 
-#define YAW_MAX_WIDTH_DEG 180
+#define YAW_MAX_WIDTH_DEG 180.0
 #define DO_BOUND_YAW false
-#define SCAN_YAW_WIDTH_DEG 120
+#define SCAN_YAW_WIDTH_DEG 120.0
 
 // Serial params
 #define BAUDRATE 115200
 #define MAX_MSG_LEN 100
 
 #define DO_PRINT_DEBUG true
-#define DebugSerial Serial
+#define DebugSerial Serial1
+#define DataSerial Serial
