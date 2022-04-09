@@ -60,7 +60,13 @@ def testFlywheels(sentry):
 def testItsy(sentry):
     yaw = input("Specify relative yaw (degrees): ")
     tilt = input("Specify relative tilt (degrees): ")
+    time.sleep(1.0)
+    playSpotSound()
+    time.sleep(1.0)
     sentry.relMove(float(tilt),float(yaw))
+
+
+
     time.sleep(1.0)
 
 def testCamera(sentry):

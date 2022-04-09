@@ -47,6 +47,7 @@ bool testingMode = false;
 bool newData = false;
 bool startScanFlag = true;
 unsigned long lastUpdateTime_ms;
+unsigned long lastImuUpdateTime_ms;
 
 char receivedChars[MAX_MSG_LEN];
 char tempChars[MAX_MSG_LEN];
@@ -89,6 +90,7 @@ void setup() {
     }
 
     initMPU();
+    lastImuUpdateTime_ms = millis();
 
     configTiltServo();
 
@@ -120,7 +122,7 @@ void loop() {
 
         // Update position estimate
         if (updateCurrTiltYaw()) {
-            stepper.setCurrentPosition(currTurretYawSteps);
+//            stepper.setCurrentPosition(currTurretYawSteps);
         }
         
         // Compute absolute target position from relative angles & current angles
@@ -130,15 +132,15 @@ void loop() {
             currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
         }
 
-        DataSerial.print(F("currTargetYawAngleDeg = "));
-        DataSerial.print(currTargetYawAngleDeg);
-        DataSerial.print(F("\tSteps = "));
-        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
-        
-        DataSerial.print(F("currTargetPitchAngleDeg = "));
-        DataSerial.print(currTargetPitchAngleDeg);
-        DataSerial.print(F("\tServo Angle = "));
-        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
+//        DataSerial.print(F("currTargetYawAngleDeg = "));
+//        DataSerial.print(currTargetYawAngleDeg);
+//        DataSerial.print(F("\tSteps = "));
+//        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
+//        
+//        DataSerial.print(F("currTargetPitchAngleDeg = "));
+//        DataSerial.print(currTargetPitchAngleDeg);
+//        DataSerial.print(F("\tServo Angle = "));
+//        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
 
         
 
@@ -151,16 +153,19 @@ void loop() {
     }
 
     // Update position estimate
-    if (updateCurrTiltYaw()) {
-        DataSerial.println(F("Turret Pitch/Yaw = "));
-        DataSerial.println(currTurretPitchAngleDeg);
-        DataSerial.println(currTurretYawAngleDeg);
-        
-        stepper.setCurrentPosition(currTurretYawSteps);
+    if (updateCurrTiltYaw() && (millis()-lastImuUpdateTime_ms > IMU_UPDATE_DELAY_MS)) {
+//        DataSerial.println(F("Turret Pitch/Yaw = "));
+//        DataSerial.println(currTurretPitchAngleDeg);
+//        DataSerial.println(currTurretYawAngleDeg);
+
+//        float currSpeed = stepper.speed();
+//        stepper.setCurrentPosition(currTurretYawSteps);
+//        stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
+//        stepper.setSpeed(currSpeed);
+//        lastImuUpdateTime_ms = millis();
     }
 
-    
-
+    // Run stepper forward
     stepper.run();
 
     
@@ -171,7 +176,7 @@ void loop() {
 
 
     // If enough time has pased since the last update, reenter scanning mode
-    if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS){
+    if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS && !testingMode){
         if (DO_PRINT_DEBUG)
             DataSerial.println("Restarting scan");
         startScanFlag = true;
@@ -190,9 +195,9 @@ void enterScanningLoop() {
     while (stepper.distanceToGo() != 0) {
         
       
-//        if (updateCurrTiltYaw()) {
+        if (updateCurrTiltYaw()) {
 //            stepper.setCurrentPosition(currTurretYawSteps);
-//        }
+        }
         
         stepper.run();
 
@@ -226,9 +231,9 @@ void enterScanningLoop() {
     while (true) {
         
         // Keep stepper position updated by MPU to correct for any missed steps
-//        if (updateCurrTiltYaw()) {
+        if (updateCurrTiltYaw()) {
 //            stepper.setCurrentPosition(currTurretYawSteps);
-//        }
+        }
         
         stepper.run();
 

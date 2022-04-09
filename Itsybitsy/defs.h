@@ -42,6 +42,8 @@
 #define GYROY_OFFSET -29
 #define GYROZ_OFFSET 111
 
+#define IMU_UPDATE_DELAY_MS 500
+
 //Movement bounds
 #define TILT_MIN_ANGLE -10
 #define TILT_MAX_ANGLE 30
@@ -54,6 +56,6 @@
 #define BAUDRATE 115200
 #define MAX_MSG_LEN 100
 
-#define DO_PRINT_DEBUG true
-#define DebugSerial Serial1
-#define DataSerial Serial
+#define DO_PRINT_DEBUG false
+#define DebugSerial Serial
+#define DataSerial Serial1
