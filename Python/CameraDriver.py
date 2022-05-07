@@ -84,7 +84,7 @@ class CameraDriver(object):
     def findTarget(self):
         frame = self.getFrame()
 
-        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,1.2,6)
+        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame)
         # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
 
         # If targets empty, return None
@@ -93,10 +93,17 @@ class CameraDriver(object):
             #     print("No targets")
 
             return None, frame
+
         if len(fullBodyTargets) == 1: # If only one target detected, return it
             # if cfg.DEBUG_MODE:
             #     print("Target found")
             [a, b, c, d] = fullBodyTargets[0]
+
+
+            if cfg.SAVE_IMGS:
+                frameTmp = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
+                self.saveImage(frameTmp, 'cv_detect_{}.jpg'.format(self.frameNum))
+
             return (a, b, c, d), frame
 
         # Otherwise, find the target closest to center of frame
@@ -112,6 +119,12 @@ class CameraDriver(object):
             targetDists[tIdx] = np.linalg.norm(targetLocations[tIdx,:1])
             
         [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
+
+
+        if cfg.SAVE_IMGS:
+            frameTmp = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
+            self.saveImage(frameTmp, 'cv_detect_{}.jpg'.format(self.frameNum))
+
         return (a, b, c, d), frame
 
     def dispTargetFrame(self,frame,bbox):
