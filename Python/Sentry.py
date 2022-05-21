@@ -42,17 +42,18 @@ class Sentry(object):
     
     def mainLoop(self):
         # Main function loop
-        doSendScanMessage = True
         firingTime= None
         isFiring = False
         targetLostTime = 0
         flyWheelsActive = False
         scanSoundTime = time.time()
+        lastUpdateTime = time.time()
+        targetLocked = False
         if cfg.DEBUG_MODE:
             print("Beginning main loop")
         while True:
             # Target search loop
-            if not self.cam.targetLocked:
+            if not targetLocked:
                 
                 bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
@@ -60,8 +61,9 @@ class Sentry(object):
                         self.cam.dispTargetFrame(frame,bbox)
 
                     playSpotSound() # Play spot sound
-                    self.cam.lockOn(bbox,frame)
-                    self.resetPid()
+                    targetLocked = True
+                    # self.cam.lockOn(bbox,frame)
+                    # self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
                     flyWheelsActive = True
                     if cfg.DEBUG_MODE:
@@ -71,15 +73,35 @@ class Sentry(object):
                     if time.time() - scanSoundTime > cfg.scanSoundPlayInterval:
                         playScanSound()
                         scanSoundTime = time.time()
-                    # If enought time passes without seeing a target, spool down flywheels if they are active
-                    if time.time() - targetLostTime > cfg.spoolDownDelay and flyWheelsActive:
-                        targetLostTime = time.time()
-                        self.motors.flyWheels.off() # Spool down flywheels
-                        flyWheelsActive = False
                     continue
 
-            h,w = self.cam.getTargetLocation()
+            # h,w = self.cam.getTargetLocation()
 
+            bbox, frame = self.cam.findTarget() # Constantly look for targets in view
+
+            if bbox == None:
+                if(isFiring):
+                    self.motors.stopFiring()
+                    isFiring = False
+                    firingTime = None
+
+                # If enought time passes without seeing a target, spool down flywheels if they are active & reset lock
+                if time.time() - targetLostTime > cfg.spoolDownDelay and flyWheelsActive:
+                    targetLostTime = time.time()
+                    self.motors.flyWheels.off() # Spool down flywheels
+                    flyWheelsActive = False
+
+                    # self.cam.resetLock() # reset lock
+                    targetLocked = False
+                    targetLostTime = time.time()
+                    continue
+
+            h = bbox[1] + int(bbox[3] / 2)
+            w = bbox[0] + int(bbox[2] / 2)
+
+            pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
+            if cfg.DEBUG_MODE:
+                print('PID: {}, {}'.format(pitchPid, yawPid))
 
             # If target close enough, start firing
             if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
@@ -99,22 +121,24 @@ class Sentry(object):
                 firingTime = None
 
             # If target visible, update position
-            if h != 0 and w != 0:
-                pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
-                if cfg.DEBUG_MODE:
-                    print('PID: {}, {}'.format(pitchPid, yawPid))
-            else: # If target not visible
-                # Reset target lock status so that sentry will immediately look for new targets
-                self.cam.resetLock()
-                targetLostTime = time.time()
-                if cfg.DEBUG_MODE:
-                    print('Resetting lock')
+            # if h != 0 and w != 0:
+            #     pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
+            #     if cfg.DEBUG_MODE:
+            #         print('PID: {}, {}'.format(pitchPid, yawPid))
+            # else: # If target not visible
+            #     # Reset target lock status so that sentry will immediately look for new targets
+            #     self.cam.resetLock()
+            #     targetLostTime = time.time()
+            #     if cfg.DEBUG_MODE:
+            #         print('Resetting lock')
+
+            currTime = time.time()
+            if (currTime - lastUpdateTime < cfg.updateRateSec):
+                time.sleep(cfg.updateRateSec - (currTime - lastUpdateTime))
+                lastUpdateTime = time.time()
                 
             
-
     def updateTarget(self,pitchPixErr,yawPixErr):
-        
-
         # Convert pixel errors to degree errors
         pitchDegErr = pitchPixErr*cfg.horizFov/cfg.videoResolution[0]
         yawDegErr = yawPixErr*cfg.vertFov/cfg.videoResolution[1]
@@ -129,7 +153,6 @@ class Sentry(object):
         else:
             pitchMoveDeg = self.pitchPid(pitchDegErr)
             yawMoveDeg = self.yawPid(yawDegErr)
-
 
         self.relMove(pitchMoveDeg,yawMoveDeg)
 
@@ -155,7 +178,6 @@ class Sentry(object):
         command = '<{},{}>'.format(yawDeg,pitchDeg)
         if cfg.DEBUG_MODE:
             print('Sending Command: {}'.format(command))
-
 
         self.sd.command(command)
 

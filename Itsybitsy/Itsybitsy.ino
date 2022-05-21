@@ -63,13 +63,20 @@ float relYawDeg;
 float relPitchDeg;
 
 void setup() {
-    
+    delay(2000);
     if (DO_PRINT_DEBUG){
         DebugSerial.begin(BAUDRATE);
         DebugSerial.flush();
         delay(100);
         DebugSerial.println(F("Program start"));
     }
+
+    // Setup servo
+    tiltServo.attach(SERVO_PIN,TILT_MIN_PULSE,TILT_MAX_PULSE);
+    tiltServo.setSpeed(TILT_SPEED_DEG_PER_SEC);
+    int initAngle = int(round(tiltPulse2Angle(TILT_INIT_PULSE)));
+    tiltServo.write(initAngle);
+    tiltServo.easeTo(initAngle);
 
 
     DataSerial.begin(BAUDRATE);
@@ -122,7 +129,7 @@ void loop() {
 
         // Update position estimate
         if (updateCurrTiltYaw()) {
-//            stepper.setCurrentPosition(currTurretYawSteps);
+//            resetPosition();
         }
         
         // Compute absolute target position from relative angles & current angles
@@ -158,22 +165,15 @@ void loop() {
 //        DataSerial.println(currTurretPitchAngleDeg);
 //        DataSerial.println(currTurretYawAngleDeg);
 
-//        float currSpeed = stepper.speed();
-//        stepper.setCurrentPosition(currTurretYawSteps);
-//        stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
-//        stepper.setSpeed(currSpeed);
-//        lastImuUpdateTime_ms = millis();
+//        resetPosition();
+        lastImuUpdateTime_ms = millis();
     }
 
     // Run stepper forward
     stepper.run();
 
-    
     // Read more data from serial buffer
     recvWithStartEndMarkers();
-
-    
-
 
     // If enough time has pased since the last update, reenter scanning mode
     if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS && !testingMode){
@@ -214,6 +214,7 @@ void enterScanningLoop() {
         if (newData){
             DataSerial.println(F("Data received, exiting scan"));
             lastUpdateTime_ms = millis();
+            resetPosition();
             return;
         }
     }
@@ -252,11 +253,18 @@ void enterScanningLoop() {
             if (DO_PRINT_DEBUG)
                 DataSerial.println(F("Data received, exiting scan"));
             lastUpdateTime_ms = millis();
+            resetPosition();
             break;
         }
         if (stepper.distanceToGo() == 0){
-            DataSerial.println(F("Switching direction"));
-            stepper.moveTo(-stepper.currentPosition());
+            targetPos *= -1;
+
+            if (DO_PRINT_DEBUG)
+              DataSerial.println(F("Switching direction"));
+
+
+            resetPosition();
+            stepper.moveTo(targetPos);
         }
     }
 }
@@ -281,6 +289,13 @@ double turretAngle2ServoAngle(double turretAngleDeg) {
 void setTiltAngle(double turretAngle) {
     tiltServo.writeMicroseconds(tiltAngle2Pulse(turretAngle2ServoAngle(turretAngle)));
     return;
+}
+
+void resetPosition(){
+    float currSpeed = stepper.speed();
+    stepper.setCurrentPosition(currTurretYawSteps);
+    stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
+    stepper.setSpeed(currSpeed);
 }
 
 // Solve for angles in 4-bar linkage
@@ -368,6 +383,8 @@ bool updateCurrTiltYaw() {
         currTurretPitchAngleDeg = ypr[2] * RAD_TO_DEG * -1.0;
         currTurretYawAngleDeg= ypr[0] * RAD_TO_DEG;
 
+        if (currTurretYawAngleDeg > 360.0) currTurretYawAngleDeg -= 360.0;
+
         currTurretYawSteps = yawAngle2Steps(currTurretYawAngleDeg);
 
         return true;
@@ -408,12 +425,7 @@ double findApproxPitch() {
 void configTiltServo(){
 
     DataSerial.println(F("Initializing Tilt Servo..."));
-    // Setup servo
-    tiltServo.attach(SERVO_PIN,TILT_MIN_PULSE,TILT_MAX_PULSE);
-    tiltServo.setSpeed(TILT_SPEED_DEG_PER_SEC);
-    int initAngle = int(round(tiltPulse2Angle(TILT_INIT_PULSE)));
-    tiltServo.write(initAngle);
-    tiltServo.easeTo(initAngle);
+
 
     
     double approxPitch = findApproxPitch();

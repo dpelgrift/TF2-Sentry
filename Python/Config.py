@@ -47,8 +47,9 @@ onTargetPixelProximity = 20
 
 """ MISC """
 doTurnLaserOn = True
-spoolDownDelay = 3
+spoolDownDelay = 5
 scanSoundPlayInterval = 5
+updateRateSec = 0.1
 
 """ PID PARAMS """
 DISABLE_PID = True
