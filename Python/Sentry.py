@@ -44,8 +44,9 @@ class Sentry(object):
         # Main function loop
         firingTime= None
         isFiring = False
-        targetLostTime = 0
         flyWheelsActive = False
+        targetLost = False
+        targetLostTime = 0
         scanSoundTime = time.time()
         lastUpdateTime = time.time()
         targetLocked = False
@@ -66,6 +67,7 @@ class Sentry(object):
                     # self.resetPid()
                     self.motors.flyWheels.on() # Spool up flywheels
                     flyWheelsActive = True
+                    targetLost = False
                     if cfg.DEBUG_MODE:
                         print('Target locked on')
                 else:
@@ -85,40 +87,44 @@ class Sentry(object):
                     isFiring = False
                     firingTime = None
 
+                if targetLocked and not targetLost:
+                    targetLost = True
+                    targetLostTime = time.time()
+
                 # If enought time passes without seeing a target, spool down flywheels if they are active & reset lock
-                if time.time() - targetLostTime > cfg.spoolDownDelay and flyWheelsActive:
+                if time.time() - targetLostTime > cfg.spoolDownDelay and targetLocked:
                     targetLostTime = time.time()
                     self.motors.flyWheels.off() # Spool down flywheels
                     flyWheelsActive = False
 
                     # self.cam.resetLock() # reset lock
                     targetLocked = False
-                    targetLostTime = time.time()
                     continue
+            else:
+                h = bbox[1] + int(bbox[3] / 2)
+                w = bbox[0] + int(bbox[2] / 2)
 
-            h = bbox[1] + int(bbox[3] / 2)
-            w = bbox[0] + int(bbox[2] / 2)
+                pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
+                if cfg.DEBUG_MODE:
+                    print('PID: {}, {}'.format(pitchPid, yawPid))
 
-            pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
-            if cfg.DEBUG_MODE:
-                print('PID: {}, {}'.format(pitchPid, yawPid))
-
-            # If target close enough, start firing
-            if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
-                w-cfg.wTargetCenter < cfg.onTargetPixelProximity:
-                if isFiring:
-                    # Reverse direction of pusher regularly to clear any jams
-                    if time.time() - firingTime > cfg.pusherReverseDurationSec:
-                        self.motors.reversePusher()
+                # If target close enough, start firing
+                if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
+                    w-cfg.wTargetCenter < cfg.onTargetPixelProximity:
+                    if not isFiring:
+                        self.motors.startFiring()
+                        isFiring = True
                         firingTime = time.time()
-                else:
-                    self.motors.startFiring()
-                    isFiring = True
-                    firingTime = time.time()
-            elif(isFiring):
-                self.motors.stopFiring()
-                isFiring = False
-                firingTime = None
+                    else:
+                        # Reverse direction of pusher regularly to clear any jams
+                        if time.time() - firingTime > cfg.pusherReverseDurationSec:
+                            self.motors.reversePusher()
+                            firingTime = time.time()
+                        
+                elif(isFiring):
+                    self.motors.stopFiring()
+                    isFiring = False
+                    firingTime = None
 
             # If target visible, update position
             # if h != 0 and w != 0:
