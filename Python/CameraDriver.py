@@ -84,7 +84,7 @@ class CameraDriver(object):
     def findTarget(self):
         frame = self.getFrame()
 
-        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame)
+        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,1.3,3)
         # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
 
         # If targets empty, return None
