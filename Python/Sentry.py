@@ -149,6 +149,8 @@ class Sentry(object):
 
             currTime = time.time()
             if (currTime - lastUpdateTime < cfg.updateRateSec):
+                waitTime = cfg.updateRateSec - (currTime - lastUpdateTime)
+                print(f'T: {time.time() - cfg.t0}, Waiting: {waitTime: .3f} sec')
                 time.sleep(cfg.updateRateSec - (currTime - lastUpdateTime))
             
             lastUpdateTime = time.time()
