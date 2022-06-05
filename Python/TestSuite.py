@@ -4,7 +4,7 @@ from AudioPlayer import *
 
 testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher\n"+\
                         "4: Test flywheels, 5: Test Itsybitsy, 6: Test Camera\n"+\
-                        "7: Test firing sequence"
+                        "7: Test firing sequence, 8: test multiple commands in sequence"
  
 
 def testingMode(sentry):
@@ -30,6 +30,8 @@ def testSelector(val,sentry):
         testCamera(sentry)
     elif val == 7:
         testFiring(sentry)
+    elif val == 8:
+        testMultiCommand(sentry)
 
 
 def testAudio(sentry):
@@ -73,6 +75,23 @@ def testItsy(sentry):
 
 
     time.sleep(1.0)
+
+
+def testMultiCommand(sentry):
+    yaw = input("Specify relative yaw (degrees): ")
+    tilt = input("Specify relative tilt (degrees): ")
+    numCommands = input("Specify number of commands to send")
+    time.sleep(1.0)
+    playSpotSound()
+    for c in range(numCommands):
+        time.sleep(0.5)
+        sentry.relMove(float(tilt),float(yaw))
+    
+        resp = sentry.sd.readSerialLine()
+        while resp != '':
+            if resp != '':
+                print(f'T: {time.time()-cfg.t0}, ' + resp)
+            resp = sentry.sd.readSerialLine()
 
 def testCamera(sentry):
     sentry.cam.getFrame()

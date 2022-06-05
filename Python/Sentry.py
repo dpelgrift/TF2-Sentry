@@ -27,6 +27,8 @@ class Sentry(object):
             print("Bypassing serial verification")
         else:
             self.verifySerial()
+
+        cfg.t0 = time.time()
             
         # Create Camera Handler & Verify Connection
         self.cam = CameraDriver()
@@ -43,9 +45,6 @@ class Sentry(object):
     
     def mainLoop(self):
         # Main function loop
-        cfg.t0 = time.time()
-
-
         firingTime= None
         isFiring = False
         flyWheelsActive = False
