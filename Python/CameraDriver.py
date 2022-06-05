@@ -99,27 +99,20 @@ class CameraDriver(object):
             #     print("Target found")
             [a, b, c, d] = fullBodyTargets[0]
 
-
-            if cfg.SAVE_IMGS:
-                frameTmp = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
-                self.saveImage(frameTmp, 'cv_detect_{}.jpg'.format(self.frameNum))
-
-            return (a, b, c, d), frame
-
-        # Otherwise, find the target closest to center of frame
-        midPoint = np.around(np.array(cfg.videoResolution)/2)
-        targetArray = np.array(fullBodyTargets)
-        
-        numTargets = targetArray.shape[0]
-        targetDists = np.zeros(numTargets)
-        targetLocations = targetArray[:,0:2] + np.around(targetArray[:,2:4]/2) - midPoint
-        
-        # Compute vector magnitude of distance to each target
-        for tIdx in range(numTargets):
-            targetDists[tIdx] = np.linalg.norm(targetLocations[tIdx,:1])
+        else:
+            # Otherwise, find the target closest to center of frame
+            midPoint = np.around(np.array(cfg.videoResolution)/2)
+            targetArray = np.array(fullBodyTargets)
             
-        [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
-
+            numTargets = targetArray.shape[0]
+            targetDists = np.zeros(numTargets)
+            targetLocations = targetArray[:,0:2] + np.around(targetArray[:,2:4]/2) - midPoint
+            
+            # Compute vector magnitude of distance to each target
+            for tIdx in range(numTargets):
+                targetDists[tIdx] = np.linalg.norm(targetLocations[tIdx,:1])
+                
+            [a, b, c, d] = fullBodyTargets[np.argmin(targetDists),:]
 
         if cfg.SAVE_IMGS:
             frameTmp = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)

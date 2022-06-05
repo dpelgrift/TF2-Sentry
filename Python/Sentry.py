@@ -52,18 +52,17 @@ class Sentry(object):
         targetLocked = False
         if cfg.DEBUG_MODE:
             print("Beginning main loop")
+
         while True:
-            
             while (time.time() - lastUpdateTime < cfg.updateRateSec):
                 self.sd.readSerialLine()
             
             lastUpdateTime = time.time()
 
+            bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
             # Target search loop
             if not targetLocked:
-                
-                bbox, frame = self.cam.findTarget() # Constantly look for targets in view
                 if bbox is not None: # If target detected
                     if cfg.DISP_FRAME:
                         self.cam.dispTargetFrame(frame,bbox)
@@ -85,9 +84,6 @@ class Sentry(object):
                     continue
 
             # h,w = self.cam.getTargetLocation()
-
-            bbox, frame = self.cam.findTarget() # Constantly look for targets in view
-
             if bbox == None:
                 if(isFiring):
                     self.motors.stopFiring()
@@ -152,7 +148,7 @@ class Sentry(object):
     def updateTarget(self,pitchPixErr,yawPixErr):
         # Convert pixel errors to degree errors
         pitchDegErr = pitchPixErr*cfg.horizFov/cfg.videoResolution[0]
-        yawDegErr = yawPixErr*cfg.vertFov/cfg.videoResolution[1]
+        yawDegErr = -yawPixErr*cfg.vertFov/cfg.videoResolution[1]
 
         if cfg.DEBUG_MODE:
             print('pitchPixErr: {}\tyawPixErr: {}'.format(pitchPixErr, yawPixErr))
@@ -167,9 +163,8 @@ class Sentry(object):
 
         self.relMove(pitchMoveDeg,yawMoveDeg)
 
-        if cfg.DEBUG_MODE:
-            print('PITCH: {}\tcomponents: {}'.format(pitchMoveDeg, self.pitchPid.components))
-            print('YAW: {}\tcomponents: {}'.format(yawMoveDeg, self.yawPid.components))
+        # if cfg.DEBUG_MODE:
+        #     print('PITCH: {}\tYAW: {}'.format(pitchMoveDeg, yawMoveDeg))
 
         return pitchMoveDeg, yawMoveDeg
 
@@ -183,17 +178,11 @@ class Sentry(object):
         pitchDeg = round(pitchDeg,2)
         yawDeg = round(yawDeg,2)
 
-        # if cfg.DEBUG_MODE:
-        #     print('Checkpoint 3a time = {}'.format(time.time()))
-
         command = '<{},{}>'.format(yawDeg,pitchDeg)
         if cfg.DEBUG_MODE:
             print('Sending Command: {}'.format(command))
 
         self.sd.command(command)
-
-        # if cfg.DEBUG_MODE:
-        #     print('Checkpoint 3b time = {}'.format(time.time()))
 
     def resetPid(self):
         self.pitchPid.reset()

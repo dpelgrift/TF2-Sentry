@@ -36,24 +36,24 @@ pusherPin = 6
 hopperPin = 13
 
 """ CAMERA """
-videoResolution = (640,480)
-hTargetCenter = 240
-wTargetCenter = 320
+videoResolution = (768,432)
+hTargetCenter = videoResolution[1]/2
+wTargetCenter = videoResolution[0]/2
 
 horizFov = 124
 vertFov = 93
 
-cascadeModelPath = 'haarcascade_fullbody.xml' 
-# cascadeModelPath = 'haarcascade_frontalface_default.xml' 
+# cascadeModelPath = 'haarcascade_fullbody.xml' 
+cascadeModelPath = 'haarcascade_frontalface_default.xml' 
 onTargetPixelProximity = 20
-scaleFactor = 1.1
-minNeighbors = 3
+scaleFactor = 1.2
+minNeighbors = 5
 
 """ MISC """
 doTurnLaserOn = True
 spoolDownDelay = 5
 scanSoundPlayInterval = 5
-updateRateSec = 0.1
+updateRateSec = 0.2
 
 """ PID PARAMS """
 DISABLE_PID = True
