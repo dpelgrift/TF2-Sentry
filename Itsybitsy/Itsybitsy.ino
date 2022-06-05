@@ -54,7 +54,7 @@ char tempChars[MAX_MSG_LEN];
 
 double currTurretPitchAngleDeg = 0;
 double currTurretYawAngleDeg = 0;
-int currTurretYawSteps = 0;
+long currTurretYawSteps = 0;
 
 double currTargetPitchAngleDeg;
 double currTargetYawAngleDeg;
@@ -129,7 +129,7 @@ void loop() {
 
         // Update position estimate
         if (updateCurrTiltYaw()) {
-//            resetPosition();
+            resetPosition();
         }
         
         // Compute absolute target position from relative angles & current angles
@@ -139,17 +139,23 @@ void loop() {
             currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
         }
 
-//        DataSerial.print(F("currTargetYawAngleDeg = "));
-//        DataSerial.print(currTargetYawAngleDeg);
-//        DataSerial.print(F("\tSteps = "));
-//        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
-//        
-//        DataSerial.print(F("currTargetPitchAngleDeg = "));
-//        DataSerial.print(currTargetPitchAngleDeg);
-//        DataSerial.print(F("\tServo Angle = "));
-//        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
+        DataSerial.print(F("currTurretYawAngleDeg = "));
+        DataSerial.print(currTurretYawAngleDeg);
+        DataSerial.print(F("\tSteps = "));
+        DataSerial.println(yawAngle2Steps(currTurretYawAngleDeg));
+        DataSerial.print(F("currTargetYawAngleDeg = "));
+        DataSerial.print(currTargetYawAngleDeg);
+        DataSerial.print(F("\tSteps = "));
+        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
 
-        
+        DataSerial.print(F("currTurretPitchAngleDeg = "));
+        DataSerial.print(currTurretPitchAngleDeg);
+        DataSerial.print(F("\tServo Angle = "));
+        DataSerial.println(turretAngle2ServoAngle(currTurretPitchAngleDeg));
+        DataSerial.print(F("currTargetPitchAngleDeg = "));
+        DataSerial.print(currTargetPitchAngleDeg);
+        DataSerial.print(F("\tServo Angle = "));
+        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
 
         // Update current stepper target
         stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
@@ -165,7 +171,7 @@ void loop() {
 //        DataSerial.println(currTurretPitchAngleDeg);
 //        DataSerial.println(currTurretYawAngleDeg);
 
-//        resetPosition();
+        resetPosition();
         lastImuUpdateTime_ms = millis();
     }
 
@@ -274,8 +280,15 @@ void setTiltAngle(double turretAngle) {
 }
 
 void resetPosition(){
+    long currPos = stepperObj.currentPosition();
+
+    // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
+    long currStepIdx = currPos % 4;
+    long newStepIdx = currTurretYawSteps % 4;
+    long newPos = currTurretYawSteps + currStepIdx - newStepIdx;
+
     float currSpeed = stepperObj.speed();
-    stepperObj.setCurrentPosition(currTurretYawSteps);
+    stepperObj.setCurrentPosition(newPos);
     stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
     stepperObj.setSpeed(currSpeed);
 }
@@ -286,7 +299,7 @@ void dmpDataReady() {
 
 // Convert servo angle to turret angle
 double servoAngle2TurretAngle(double servoAngleDeg) {
-    double thetaCS = 360 - SERVO_2_TILTSHAFT_ANGLE - servoAngleDeg - servoAngleOffset;
+    double thetaCS = 360.0 - SERVO_2_TILTSHAFT_ANGLE - servoAngleDeg - servoAngleOffset;
   
     return PITCH_2_TILTANGLE_OFFSET - convertLinkageAngle(thetaCS,LIFTER1_LEN,servo2TiltAxisLen,LIFTERBASE_2_TILTSHAFT_LEN,LIFTER2_LEN);
 }
@@ -295,7 +308,7 @@ double servoAngle2TurretAngle(double servoAngleDeg) {
 double turretAngle2ServoAngle(double turretAngleDeg) {
     double thetaCS = convertLinkageAngle(PITCH_2_TILTANGLE_OFFSET-turretAngleDeg,LIFTERBASE_2_TILTSHAFT_LEN,servo2TiltAxisLen,LIFTER1_LEN,LIFTER2_LEN);
 
-    return 360 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - servoAngleOffset;
+    return 360.0 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - servoAngleOffset;
 }
 
 void initMPU() {

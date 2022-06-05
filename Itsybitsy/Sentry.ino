@@ -6,12 +6,12 @@
 
 using namespace std;
 
+
+// Stepper struct definition
 struct stepper {
   stepper(int p1, int p2, int p3, int p4);
 
   public:
-  void enable();
-  void disable();
   void update_config(int32_t steps_per_rev_new, float max_vel_new, float max_accel_new);
   void set_current_rads(double rads);
   void set_rad_target(double target, float feedrate);
@@ -22,13 +22,14 @@ struct stepper {
   private:
   // Configuration
   uint8_t _pin[4];
-  int _steps_per_rev = YAW_STEPS_PER_REV;
+  uint16_t _steps_per_rev = YAW_STEPS_PER_REV;
   float _max_vel = 5;
   float _max_accel = 5;
   float _step_size_rads = 2.0 * PI / float(YAW_STEPS_PER_REV);
 
   // Backend funcs
   void take_step();
+  void step4(long step);
   void set_dir(bool dir);
   void setOutputPins(uint8_t mask);
   void quad_solve(double &t_0, double &t_1, double a, double b, double c);
@@ -40,24 +41,11 @@ struct stepper {
   bool current_dir = false;
   double current_velocity = 0;
   int32_t current_step_count = 0;
+  int8_t step_idx = 0;
+
   double diff_exact_us = 0;
   uint32_t last_step_us = 0;
   uint32_t next_step_us = 0;
-};
-
-struct gcode_command_floats {
-  gcode_command_floats(vector<String> inputs);
-
-  public:
-  float fetch(char com_key);
-  bool com_exists(char com_key);
-  
-
-  private:
-  void parse_float(String inpt, char &cmd, float &value);
-
-  vector<char> commands;
-  vector<float> values;
 };
 
 stepper::stepper(int p1, int p2, int p3, int p4)
@@ -213,19 +201,44 @@ bool stepper::step_if_needed()
 // Public - Return current position in rads
 double stepper::get_current_rads()
 {
-  return 2 * PI * current_step_count / _steps_per_rev;
+    return 2 * PI * current_step_count / _steps_per_rev;
 }
 
 // Public - Return current velocity in rads/sec
 double stepper::get_current_vel()
 {
-  return current_velocity;
+    return current_velocity;
 }
 
 // Private - Take single step and update step count if control loop designates to do so
 void stepper::take_step()
 {
+    if(current_dir) current_step_count++;
+    else current_step_count--;
+    step4(current_step_count);
+}
 
+// 4 pin step function for half stepper
+void stepper::step4(long step)
+{
+    switch (step & 0x3)
+    {
+	case 0:    // 1010
+	    setOutputPins(0b0101);
+	    break;
+
+	case 1:    // 0110
+	    setOutputPins(0b0110);
+	    break;
+
+	case 2:    //0101
+	    setOutputPins(0b1010);
+	    break;
+
+	case 3:    //1001
+	    setOutputPins(0b1001);
+	    break;
+    }
 }
 
 // Private - Quadratic equation yo
@@ -239,6 +252,22 @@ void stepper::quad_solve(double &t_0, double &t_1, double a, double b, double c)
 
 
 /* GCODE PARSER STUFF */
+
+// GCODE Struct definition
+struct gcode_command_floats {
+  gcode_command_floats(vector<String> inputs);
+
+  public:
+  float fetch(char com_key);
+  bool com_exists(char com_key);
+  
+
+  private:
+  void parse_float(String inpt, char &cmd, float &value);
+
+  vector<char> commands;
+  vector<float> values;
+};
 
 gcode_command_floats::gcode_command_floats(vector<String> inputs)
 {
@@ -284,7 +313,7 @@ void gcode_command_floats::parse_float(String inpt, char &cmd, float &value)
   {
     cmd = inpt[0];
     if (inpt.length() == 1)
-      return;
+        return;
 
     String temp_arg_char = "";
     for (uint32_t i = 1; i < inpt.length(); i++)
@@ -298,7 +327,8 @@ void gcode_command_floats::parse_float(String inpt, char &cmd, float &value)
 
 
 // Solve for angles in 4-bar linkage
-double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, double D) {
+double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, double D)
+{
     double inputAngleRad = inputAngleDeg * PI / 180.0;
 
     double F = sqrt(pow(A,2) + pow(B,2) - 2.0*A*B*cos(inputAngleRad));
@@ -309,18 +339,21 @@ double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, d
 }
 
 // Convert pwm pulse width to servo angle
-double tiltPulse2Angle(long pulse) {
+double tiltPulse2Angle(long pulse)
+{
     long angleLong = map(pulse,TILT_MIN_PULSE,TILT_MAX_PULSE,0,18000);
     return double(angleLong)/100.0;
 }
 
 // Convert servo angle to pwm pulse width
-long tiltAngle2Pulse(double angle) {
+long tiltAngle2Pulse(double angle)
+{
     long angleLong = long(round(angle*100));
     return map(angleLong,0,18000,TILT_MIN_PULSE,TILT_MAX_PULSE);
 }
 
 // Convert yaw angle (in rads) to number of steps
-int yawAngle2Steps(double yaw) {
+int yawAngle2Steps(double yaw)
+{
     return int(round((yaw/360.0) * double(STEPS_PER_REV)));
 }

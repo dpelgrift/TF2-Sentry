@@ -36,9 +36,9 @@ pusherPin = 6
 hopperPin = 13
 
 """ CAMERA """
-videoResolution = (740,548)
-hTargetCenter = 370
-wTargetCenter = 274
+videoResolution = (640,480)
+hTargetCenter = 240
+wTargetCenter = 320
 
 horizFov = 124
 vertFov = 93
