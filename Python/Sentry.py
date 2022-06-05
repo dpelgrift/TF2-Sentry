@@ -53,6 +53,13 @@ class Sentry(object):
         if cfg.DEBUG_MODE:
             print("Beginning main loop")
         while True:
+            
+            while (time.time() - lastUpdateTime < cfg.updateRateSec):
+                self.sd.readSerialLine()
+            
+            lastUpdateTime = time.time()
+
+
             # Target search loop
             if not targetLocked:
                 
@@ -105,8 +112,8 @@ class Sentry(object):
                 w = bbox[0] + int(bbox[2] / 2)
 
                 pitchPid, yawPid = self.updateTarget(h-cfg.hTargetCenter,w-cfg.wTargetCenter)
-                if cfg.DEBUG_MODE:
-                    print('PID: {}, {}'.format(pitchPid, yawPid))
+                # if cfg.DEBUG_MODE:
+                #     print('PID: {}, {}'.format(pitchPid, yawPid))
 
                 # If target close enough, start firing
                 if h-cfg.hTargetCenter < cfg.onTargetPixelProximity and \
@@ -138,10 +145,8 @@ class Sentry(object):
             #     if cfg.DEBUG_MODE:
             #         print('Resetting lock')
 
-            currTime = time.time()
-            if (currTime - lastUpdateTime < cfg.updateRateSec):
-                time.sleep(cfg.updateRateSec - (currTime - lastUpdateTime))
-                lastUpdateTime = time.time()
+            
+            
                 
             
     def updateTarget(self,pitchPixErr,yawPixErr):
