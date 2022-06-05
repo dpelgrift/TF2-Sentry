@@ -11,13 +11,13 @@
 
 #include "AccelStepper.h"
 #include "ServoEasing.h"
+#include "Sentry.ino"
 
 #include "defs.h"
-#include "Servo.h"
 
 MPU6050 mpu;
 ServoEasing tiltServo;
-AccelStepper stepper(AccelStepper::FULL4WIRE,STEP1,STEP2,STEP3,STEP4);
+AccelStepper stepperObj(AccelStepper::FULL4WIRE,STEP1,STEP2,STEP3,STEP4);
 
 
 // Tilt servo vars
@@ -102,9 +102,9 @@ void setup() {
     configTiltServo();
 
     
-    stepper.setCurrentPosition(0);
-    stepper.setMaxSpeed(STEPPER_MAX_SPEED);
-    stepper.setAcceleration(STEPPER_ACCEL);
+    stepperObj.setCurrentPosition(0);
+    stepperObj.setMaxSpeed(STEPPER_MAX_SPEED);
+    stepperObj.setAcceleration(STEPPER_ACCEL);
 
 
     DataSerial.println(F("Configuration successful, entering scanning mode"));
@@ -152,7 +152,7 @@ void loop() {
         
 
         // Update current stepper target
-        stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
+        stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
         // Update current servo target
         tiltServo.startEaseTo(turretAngle2ServoAngle(currTargetPitchAngleDeg));
 
@@ -170,7 +170,7 @@ void loop() {
     }
 
     // Run stepper forward
-    stepper.run();
+    stepperObj.run();
 
     // Read more data from serial buffer
     recvWithStartEndMarkers();
@@ -188,18 +188,18 @@ void enterScanningLoop() {
         DataSerial.println(F("Entering scanning loop"));
 
     // Reset to 0,0
-    stepper.moveTo(0);
-    stepper.run();
+    stepperObj.moveTo(0);
+    stepperObj.run();
     tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
     DataSerial.println(F("Resetting zero"));
-    while (stepper.distanceToGo() != 0) {
+    while (stepperObj.distanceToGo() != 0) {
         
       
         if (updateCurrTiltYaw()) {
-//            stepper.setCurrentPosition(currTurretYawSteps);
+//            stepperObj.setCurrentPosition(currTurretYawSteps);
         }
         
-        stepper.run();
+        stepperObj.run();
 
         // Read more data from serial buffer
         recvWithStartEndMarkers();
@@ -208,7 +208,7 @@ void enterScanningLoop() {
         DataSerial.println(newData);
 
         DataSerial.print(F("Distance to go: "));
-        DataSerial.println(stepper.distanceToGo());
+        DataSerial.println(stepperObj.distanceToGo());
         
         // Break out if command received from pi while resetting
         if (newData){
@@ -227,16 +227,16 @@ void enterScanningLoop() {
     DataSerial.print(F("Target Position: "));
     DataSerial.println(targetPos);
 
-    stepper.moveTo(targetPos);
+    stepperObj.moveTo(targetPos);
     DataSerial.println(F("Entering bounce loop"));
     while (true) {
         
         // Keep stepper position updated by MPU to correct for any missed steps
         if (updateCurrTiltYaw()) {
-//            stepper.setCurrentPosition(currTurretYawSteps);
+//            stepperObj.setCurrentPosition(currTurretYawSteps);
         }
         
-        stepper.run();
+        stepperObj.run();
 
         // Read more data from serial buffer
         recvWithStartEndMarkers();
@@ -245,7 +245,7 @@ void enterScanningLoop() {
 //        DataSerial.println(newData);
 //
 //        DataSerial.print(F("Distance to go: "));
-//        DataSerial.println(stepper.distanceToGo());
+//        DataSerial.println(stepperObj.distanceToGo());
 
         
         // Break out if command received from pi
@@ -256,7 +256,7 @@ void enterScanningLoop() {
             resetPosition();
             break;
         }
-        if (stepper.distanceToGo() == 0){
+        if (stepperObj.distanceToGo() == 0){
             targetPos *= -1;
 
             if (DO_PRINT_DEBUG)
@@ -264,65 +264,38 @@ void enterScanningLoop() {
 
 
             resetPosition();
-            stepper.moveTo(targetPos);
+            stepperObj.moveTo(targetPos);
         }
     }
 }
 
-int yawAngle2Steps(double yaw) {
-    return int(round((yaw/360.0) * double(STEPS_PER_REV)));
+void setTiltAngle(double turretAngle) {
+    tiltServo.writeMicroseconds(tiltAngle2Pulse(turretAngle2ServoAngle(turretAngle)));
 }
 
-double servoAngle2TurretAngle(double servoAngleDeg) {
+void resetPosition(){
+    float currSpeed = stepperObj.speed();
+    stepperObj.setCurrentPosition(currTurretYawSteps);
+    stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
+    stepperObj.setSpeed(currSpeed);
+}
 
+void dmpDataReady() {
+    mpuInterrupt = true;
+}
+
+// Convert servo angle to turret angle
+double servoAngle2TurretAngle(double servoAngleDeg) {
     double thetaCS = 360 - SERVO_2_TILTSHAFT_ANGLE - servoAngleDeg - servoAngleOffset;
   
     return PITCH_2_TILTANGLE_OFFSET - convertLinkageAngle(thetaCS,LIFTER1_LEN,servo2TiltAxisLen,LIFTERBASE_2_TILTSHAFT_LEN,LIFTER2_LEN);
 }
 
+// Convert turret angle to servo angle
 double turretAngle2ServoAngle(double turretAngleDeg) {
     double thetaCS = convertLinkageAngle(PITCH_2_TILTANGLE_OFFSET-turretAngleDeg,LIFTERBASE_2_TILTSHAFT_LEN,servo2TiltAxisLen,LIFTER1_LEN,LIFTER2_LEN);
 
     return 360 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - servoAngleOffset;
-}
-
-void setTiltAngle(double turretAngle) {
-    tiltServo.writeMicroseconds(tiltAngle2Pulse(turretAngle2ServoAngle(turretAngle)));
-    return;
-}
-
-void resetPosition(){
-    float currSpeed = stepper.speed();
-    stepper.setCurrentPosition(currTurretYawSteps);
-    stepper.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
-    stepper.setSpeed(currSpeed);
-}
-
-// Solve for angles in 4-bar linkage
-double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, double D) {
-    double inputAngleRad = inputAngleDeg * PI / 180.0;
-
-    double F = sqrt(pow(A,2) + pow(B,2) - 2.0*A*B*cos(inputAngleRad));
-
-    double thetaOut = acos((pow(B,2) + pow(F,2) - pow(A,2))/(2.0*B*F)) + acos((pow(C,2) + pow(F,2) - pow(D,2))/(2.0*C*F));
-
-    return thetaOut * RAD_TO_DEG;
-}
-
-// Convert pwm pulse width to servo angle
-double tiltPulse2Angle(long pulse) {
-    long angleLong = map(pulse,TILT_MIN_PULSE,TILT_MAX_PULSE,0,18000);
-    return double(angleLong)/100.0;
-}
-
-// Convert servo angle to pwm pulse width
-long tiltAngle2Pulse(double angle) {
-    long angleLong = long(round(angle*100));
-    return map(angleLong,0,18000,TILT_MIN_PULSE,TILT_MAX_PULSE);
-}
-
-void dmpDataReady() {
-    mpuInterrupt = true;
 }
 
 void initMPU() {
@@ -361,9 +334,6 @@ void initMPU() {
     mpu.setYAccelOffset(ACCELY_OFFSET);
     mpu.setZAccelOffset(ACCELZ_OFFSET);
 
-    //mpu.CalibrateAccel(6);
-    //mpu.CalibrateGyro(6);
-
     mpu.setDMPEnabled(true);
 
     attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
@@ -379,11 +349,11 @@ bool updateCurrTiltYaw() {
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-        //TODO: Ensure that euler angles match up correctly to axes of MPU
         currTurretPitchAngleDeg = ypr[2] * RAD_TO_DEG * -1.0;
         currTurretYawAngleDeg= ypr[0] * RAD_TO_DEG;
 
-        if (currTurretYawAngleDeg > 360.0) currTurretYawAngleDeg -= 360.0;
+        if (currTurretYawAngleDeg > 180.0) currTurretYawAngleDeg -= 360.0;
+        else if (currTurretYawAngleDeg <= -180.0) currTurretYawAngleDeg += 360.0;
 
         currTurretYawSteps = yawAngle2Steps(currTurretYawAngleDeg);
 
@@ -414,19 +384,12 @@ double findApproxPitch() {
     avgY = double(sums[0])/numSamples;
     avgZ = double(sums[1])/numSamples;
 
-//    DataSerial.print(sums[0]);
-//    DataSerial.print(", ");
-//    DataSerial.println(sums[1]);
-
     // Use computed accelerations to approximate current turret pitch angle
     return -asin(avgY/avgZ)*RAD_TO_DEG;
 }
 
 void configTiltServo(){
-
     DataSerial.println(F("Initializing Tilt Servo..."));
-
-
     
     double approxPitch = findApproxPitch();
     DataSerial.print(F("approxPitch: "));
@@ -460,7 +423,6 @@ void configTiltServo(){
     }
 
     
-
     // Try to set tilt to zero
     DataSerial.println(F("Attempting to zero tilt..."));
     tiltServo.easeTo(int(round(turretAngle2ServoAngle(0.0))));

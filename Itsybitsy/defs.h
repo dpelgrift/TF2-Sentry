@@ -56,6 +56,11 @@
 #define BAUDRATE 115200
 #define MAX_MSG_LEN 100
 
+// Misc
+
+#define MAX_MSG_LEN 100
+#define NOVALUE 999999
+
 #define DO_PRINT_DEBUG false
 #define DebugSerial Serial
 #define DataSerial Serial1
