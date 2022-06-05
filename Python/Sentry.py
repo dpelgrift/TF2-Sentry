@@ -60,8 +60,8 @@ class Sentry(object):
                 if resp != '':
                     print(resp)
                 resp = self.sd.readSerialLine()
+
             
-            lastUpdateTime = time.time()
 
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
@@ -144,6 +144,12 @@ class Sentry(object):
             #     targetLostTime = time.time()
             #     if cfg.DEBUG_MODE:
             #         print('Resetting lock')
+
+            currTime = time.time()
+            if (currTime - lastUpdateTime < cfg.updateRateSec):
+                time.sleep(cfg.updateRateSec - (currTime - lastUpdateTime))
+            
+            lastUpdateTime = time.time()
 
             
             
