@@ -20,7 +20,7 @@ class CameraDriver(object):
 
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
-        self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+        self.fullBodyCascade = cv2.CascadeClassifier(cfg.cascadeModelPath)
         self.tracker = cv2.TrackerKCF_create()
         if cfg.DISP_FRAME:
             self.rawFrameWin = cv2.namedWindow('rawframes',flags=cv2.WINDOW_AUTOSIZE)
@@ -84,7 +84,7 @@ class CameraDriver(object):
     def findTarget(self):
         frame = self.getFrame()
 
-        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,1.1,5)
+        fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,cfg.scaleFactor,cfg.minNeighbors)
         # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
 
         # If targets empty, return None

@@ -43,7 +43,11 @@ wTargetCenter = 320
 horizFov = 124
 vertFov = 93
 
+cascadeModelPath = 'haarcascade_fullbody.xml' 
+# cascadeModelPath = 'haarcascade_frontalface_default.xml' 
 onTargetPixelProximity = 20
+scaleFactor = 1.1
+minNeighbors = 3
 
 """ MISC """
 doTurnLaserOn = True
