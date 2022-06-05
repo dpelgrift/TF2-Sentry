@@ -82,9 +82,11 @@ def testMultiCommand(sentry):
     numCommands = input("Specify number of commands to send: ")
     time.sleep(1.0)
     playSpotSound()
+    time.sleep(0.5)
     for c in range(int(numCommands)):
-        time.sleep(0.5)
+        
         sentry.relMove(float(tilt),float(yaw))
+        time.sleep(0.5)
     
         resp = sentry.sd.readSerialLine()
         while resp != '':
