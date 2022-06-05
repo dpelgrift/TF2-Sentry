@@ -54,10 +54,12 @@ class Sentry(object):
             print("Beginning main loop")
 
         while True:
-            while (time.time() - lastUpdateTime < cfg.updateRateSec):
-                resp = self.sd.readSerialLine()
+
+            resp = self.sd.readSerialLine()
+            while resp != '':
                 if resp != '':
                     print(resp)
+                resp = self.sd.readSerialLine()
             
             lastUpdateTime = time.time()
 
