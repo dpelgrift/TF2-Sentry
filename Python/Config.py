@@ -72,6 +72,7 @@ S_TIMEOUT = 0.2
 R_TIMEOUT = 10
 
 """ DEBUG """
+global t0
 DEBUG_MODE = True
 TEST_MODE = False
 SAVE_IMGS = True

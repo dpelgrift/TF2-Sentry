@@ -82,6 +82,8 @@ class CameraDriver(object):
             return (0,0)
 
     def findTarget(self):
+        global t0
+
         frame = self.getFrame()
 
         fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,cfg.scaleFactor,cfg.minNeighbors)
@@ -116,7 +118,7 @@ class CameraDriver(object):
 
         if cfg.SAVE_IMGS:
             frameTmp = cv2.rectangle(frame, (a, b), (a + c, b + d), (0, 0, 0), 2)
-            self.saveImage(frameTmp, 'cv_detect_{}.jpg'.format(self.frameNum))
+            self.saveImage(frameTmp, 'cv_detect_{}_T{:.2f}.jpg'.format(self.frameNum,time.time()-t0))
 
         return (a, b, c, d), frame
 

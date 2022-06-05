@@ -11,6 +11,7 @@ from AudioPlayer import *
 
 
 
+
 class Sentry(object):
     def __init__(self):
         # Create audio player object & play startup tone
@@ -41,7 +42,11 @@ class Sentry(object):
 
     
     def mainLoop(self):
+        global t0
         # Main function loop
+        t0 = time.time()
+
+
         firingTime= None
         isFiring = False
         flyWheelsActive = False
@@ -58,10 +63,8 @@ class Sentry(object):
             resp = self.sd.readSerialLine()
             while resp != '':
                 if resp != '':
-                    print(resp)
+                    print(f'T: {time.time()-t0}, ' + resp)
                 resp = self.sd.readSerialLine()
-
-            
 
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
@@ -79,7 +82,7 @@ class Sentry(object):
                     flyWheelsActive = True
                     targetLost = False
                     if cfg.DEBUG_MODE:
-                        print('Target locked on')
+                        print(f'T: {time.time() - t0}, Target locked on')
                 else:
                     # Play scan sound at regular intervals
                     if time.time() - scanSoundTime > cfg.scanSoundPlayInterval:
@@ -156,13 +159,15 @@ class Sentry(object):
                 
             
     def updateTarget(self,pitchPixErr,yawPixErr):
+        global t0
+
         # Convert pixel errors to degree errors
         pitchDegErr = pitchPixErr*cfg.horizFov/cfg.videoResolution[0]
         yawDegErr = yawPixErr*cfg.vertFov/cfg.videoResolution[1]
 
         if cfg.DEBUG_MODE:
-            print('pitchPixErr: {}\tyawPixErr: {}'.format(pitchPixErr, yawPixErr))
-            print('pitchDegErr: {}\tyawDegErr: {}'.format(pitchDegErr, yawDegErr))
+            print('T: {}, pitchPixErr: {}\tyawPixErr: {}'.format(time.time()-t0, pitchPixErr, yawPixErr))
+            print('T: {}, pitchDegErr: {}\tyawDegErr: {}'.format(time.time()-t0, pitchDegErr, yawDegErr))
 
         if cfg.DISABLE_PID:
             pitchMoveDeg = pitchDegErr
@@ -179,6 +184,7 @@ class Sentry(object):
         return pitchMoveDeg, yawMoveDeg
 
     def relMove(self, pitchDeg, yawDeg):
+        global t0
         # if pitchDeg < cfg.pitchLimitsDeg[0]:
         #     pitchDeg = cfg.pitchLimitsDeg[0]
         # elif pitchDeg > cfg.pitchLimitsDeg[1]:
@@ -190,7 +196,7 @@ class Sentry(object):
 
         command = '<{},{}>'.format(yawDeg,pitchDeg)
         if cfg.DEBUG_MODE:
-            print('Sending Command: {}'.format(command))
+            print(f'T: {time.time()-t0}, Sending Command: {command}')
 
         self.sd.command(command)
 
