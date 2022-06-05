@@ -73,17 +73,16 @@ def testItsy(sentry):
         if resp != '':
             print(resp)
 
-
     time.sleep(1.0)
 
 
 def testMultiCommand(sentry):
     yaw = input("Specify relative yaw (degrees): ")
     tilt = input("Specify relative tilt (degrees): ")
-    numCommands = input("Specify number of commands to send")
+    numCommands = input("Specify number of commands to send: ")
     time.sleep(1.0)
     playSpotSound()
-    for c in range(numCommands):
+    for c in range(int(numCommands)):
         time.sleep(0.5)
         sentry.relMove(float(tilt),float(yaw))
     
