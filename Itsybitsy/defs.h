@@ -33,7 +33,7 @@
 
 #define SCAN_RESET_TIME_MS 5000
 
-// MPU Params
+// IMU Params
 #define ACCELX_OFFSET -2646
 #define ACCELY_OFFSET 1617
 #define ACCELZ_OFFSET 1306

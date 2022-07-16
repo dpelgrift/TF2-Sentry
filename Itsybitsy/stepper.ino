@@ -1,52 +1,7 @@
- /* STEPPER STUFF */
+
 #include "defs.h"
 #include <Arduino.h>
-#include <algorithm>
-#include <vector>
-
-using namespace std;
-
-
-// Stepper struct definition
-struct stepper {
-  stepper(int p1, int p2, int p3, int p4);
-
-  public:
-  void update_config(int32_t steps_per_rev_new, float max_vel_new, float max_accel_new);
-  void set_current_rads(double rads);
-  void set_rad_target(double target, float feedrate);
-  bool step_if_needed();
-  double get_current_rads();
-  double get_current_vel();
-
-  private:
-  // Configuration
-  uint8_t _pin[4];
-  uint16_t _steps_per_rev = YAW_STEPS_PER_REV;
-  float _max_vel = 5;
-  float _max_accel = 5;
-  float _step_size_rads = 2.0 * PI / float(YAW_STEPS_PER_REV);
-
-  // Backend funcs
-  void take_step();
-  void step4(long step);
-  void set_dir(bool dir);
-  void setOutputPins(uint8_t mask);
-  void quad_solve(double &t_0, double &t_1, double a, double b, double c);
-
-  // Control vars
-  double target_rads = 0;
-
-  // Motion tracking vars
-  bool current_dir = false;
-  double current_velocity = 0;
-  int32_t current_step_count = 0;
-  int8_t step_idx = 0;
-
-  double diff_exact_us = 0;
-  uint32_t last_step_us = 0;
-  uint32_t next_step_us = 0;
-};
+// #include "stepper.h"
 
 stepper::stepper(int p1, int p2, int p3, int p4)
 {
@@ -92,7 +47,13 @@ void stepper::set_current_rads(double target)
   double working_count = target * _steps_per_rev;
   working_count /= (2 * PI);
   working_count += 0.4999; // For the rounding
-  current_step_count = (int32_t) working_count;
+
+  // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
+  int32_t currStepIdx = current_step_count % 4;
+  int32_t newStepIdx = (int32_t) working_count % 4;
+  int32_t newPos = (int32_t) working_count + currStepIdx - newStepIdx;
+
+  current_step_count = newPos;
 }
 
 // Public - Update target position in rads. Respects any joint momentum.
@@ -102,6 +63,11 @@ void stepper::set_rad_target(double target, float feedrate)
   next_step_us = micros();
   if (feedrate != NOVALUE)
     _max_vel = feedrate;
+}
+
+void stepper::set_dir(bool dir)
+{
+  current_dir = dir;
 }
 
 // Public - The magic sauce. Tracks motor motion and calculates if a step is needed now to stay on track.
@@ -198,10 +164,24 @@ bool stepper::step_if_needed()
   return true;
 }
 
+int32_t stepper::distance_to_go()
+{
+  int32_t step_target = (_steps_per_rev * target_rads);
+  step_target /= 2 * PI;
+
+  return abs(current_step_count - step_target);
+}
+
 // Public - Return current position in rads
 double stepper::get_current_rads()
 {
     return 2 * PI * current_step_count / _steps_per_rev;
+}
+
+// Public - Return current position in rads
+int32_t stepper::get_current_steps()
+{
+    return current_step_count;
 }
 
 // Public - Return current velocity in rads/sec
@@ -223,21 +203,21 @@ void stepper::step4(long step)
 {
     switch (step & 0x3)
     {
-	case 0:    // 1010
-	    setOutputPins(0b0101);
-	    break;
+  case 0:    // 1010
+      setOutputPins(0b0101);
+      break;
 
-	case 1:    // 0110
-	    setOutputPins(0b0110);
-	    break;
+  case 1:    // 0110
+      setOutputPins(0b0110);
+      break;
 
-	case 2:    //0101
-	    setOutputPins(0b1010);
-	    break;
+  case 2:    //0101
+      setOutputPins(0b1010);
+      break;
 
-	case 3:    //1001
-	    setOutputPins(0b1001);
-	    break;
+  case 3:    //1001
+      setOutputPins(0b1001);
+      break;
     }
 }
 
@@ -248,112 +228,4 @@ void stepper::quad_solve(double &t_0, double &t_1, double a, double b, double c)
   double temp1 = sqrt(pow(b, 2) + 2 * a * c);
   t_0 = (temp0 + temp1) / a;
   t_1 = (temp0 - temp1) / a;
-}
-
-
-/* GCODE PARSER STUFF */
-
-// GCODE Struct definition
-struct gcode_command_floats {
-  gcode_command_floats(vector<String> inputs);
-
-  public:
-  float fetch(char com_key);
-  bool com_exists(char com_key);
-  
-
-  private:
-  void parse_float(String inpt, char &cmd, float &value);
-
-  vector<char> commands;
-  vector<float> values;
-};
-
-gcode_command_floats::gcode_command_floats(vector<String> inputs)
-{
-  if (inputs.size() == 1)
-    return;
-
-  for(uint16_t arg_i = 1; arg_i < inputs.size(); arg_i++)
-  {
-    char char_value = '\0';
-    float float_value = NOVALUE;
-    parse_float(inputs[arg_i], char_value, float_value);
-
-    commands.push_back(tolower(char_value));
-    values.push_back(float_value);
-  }
-}
-
-float gcode_command_floats::fetch(char com_key)
-{
-  vector<char>::iterator itr = find(commands.begin(), commands.end(), com_key);
-  if (itr != commands.cend())
-  {
-    return values[distance(commands.begin(), itr)];
-  }
-
-  return NOVALUE;
-}
-
-bool gcode_command_floats::com_exists(char com_key)
-{
-  vector<char>::iterator itr = find(commands.begin(), commands.end(), com_key);
-  if (itr != commands.cend())
-  {
-    return true;
-  }
-
-  return false;
-}
-
-void gcode_command_floats::parse_float(String inpt, char &cmd, float &value)
-{
-  if (inpt.length() > 0)
-  {
-    cmd = inpt[0];
-    if (inpt.length() == 1)
-        return;
-
-    String temp_arg_char = "";
-    for (uint32_t i = 1; i < inpt.length(); i++)
-    {
-      temp_arg_char += inpt[i];
-    }
-  
-    value = temp_arg_char.toFloat();
-  }
-}
-
-
-// Solve for angles in 4-bar linkage
-double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, double D)
-{
-    double inputAngleRad = inputAngleDeg * PI / 180.0;
-
-    double F = sqrt(pow(A,2) + pow(B,2) - 2.0*A*B*cos(inputAngleRad));
-
-    double thetaOut = acos((pow(B,2) + pow(F,2) - pow(A,2))/(2.0*B*F)) + acos((pow(C,2) + pow(F,2) - pow(D,2))/(2.0*C*F));
-
-    return thetaOut * RAD_TO_DEG;
-}
-
-// Convert pwm pulse width to servo angle
-double tiltPulse2Angle(long pulse)
-{
-    long angleLong = map(pulse,TILT_MIN_PULSE,TILT_MAX_PULSE,0,18000);
-    return double(angleLong)/100.0;
-}
-
-// Convert servo angle to pwm pulse width
-long tiltAngle2Pulse(double angle)
-{
-    long angleLong = long(round(angle*100));
-    return map(angleLong,0,18000,TILT_MIN_PULSE,TILT_MAX_PULSE);
-}
-
-// Convert yaw angle (in rads) to number of steps
-int yawAngle2Steps(double yaw)
-{
-    return int(round((yaw/360.0) * double(STEPS_PER_REV)));
 }

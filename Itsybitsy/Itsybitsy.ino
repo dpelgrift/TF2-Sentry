@@ -9,58 +9,43 @@
     #include "Wire.h"
 #endif
 
-#include "AccelStepper.h"
 #include "ServoEasing.h"
-#include "Sentry.ino"
-
+#include "stepper.h"
+#include "imu.h"
+#include "gcode.h"
+// #include "funcs.ino"
 #include "defs.h"
 
-MPU6050 mpu;
+// Setup hardware objects
+stepper step(STEP1,STEP2,STEP3,STEP4);
+imu mpu;
 ServoEasing tiltServo;
-AccelStepper stepperObj(AccelStepper::FULL4WIRE,STEP1,STEP2,STEP3,STEP4);
 
 
 // Tilt servo vars
 const double servo2TiltAxisLen = sqrt(pow(SERVOSHAFT_X,2) + pow(SERVOSHAFT_Y,2));
 const double servo2TiltAxisAngleDeg = atan(SERVOSHAFT_Y/SERVOSHAFT_X)*180.0/PI;
-
 double servoAngleOffset = 0; // Angle offset
 
 
-// MPU Vars
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64]; // FIFO storage buffer
-
-Quaternion q;           // [w, x, y, z]         quaternion container
-VectorFloat gravity;    // [x, y, z]            gravity vector
-float ypr[3];         // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-
 // General vars
-bool testingMode = false;
-bool newData = false;
-bool startScanFlag = true;
 unsigned long lastUpdateTime_ms;
 unsigned long lastImuUpdateTime_ms;
 
+
+bool scanningMode = false;
+uint8_t scanState = 0;
+int scanTargetYaw = SCAN_YAW_WIDTH_DEG/2.0;
+
+unsigned long t0_ms;
+
 char receivedChars[MAX_MSG_LEN];
-char tempChars[MAX_MSG_LEN];
+
+char base_cmd;
+int32_t base_value;
 
 double currTurretPitchAngleDeg = 0;
 double currTurretYawAngleDeg = 0;
-long currTurretYawSteps = 0;
-
-double currTargetPitchAngleDeg;
-double currTargetYawAngleDeg;
-
-float relYawDeg;
-float relPitchDeg;
 
 void setup() {
     delay(2000);
@@ -73,6 +58,7 @@ void setup() {
 
     // Setup servo
     tiltServo.attach(SERVO_PIN,TILT_MIN_PULSE,TILT_MAX_PULSE);
+    tiltServo.setEasingType(EASE_QUADRATIC_IN_OUT);
     tiltServo.setSpeed(TILT_SPEED_DEG_PER_SEC);
     int initAngle = int(round(tiltPulse2Angle(TILT_INIT_PULSE)));
     tiltServo.write(initAngle);
@@ -88,7 +74,6 @@ void setup() {
     if (val.startsWith("test")) {
         delay(500);
         DataSerial.println(F("testing"));
-        testingMode = true;
     } else if (val.startsWith("marco")) {
         DataSerial.println(F("polo"));
     }
@@ -96,205 +81,151 @@ void setup() {
         DebugSerial.println(val);
     }
 
-    initMPU();
     lastImuUpdateTime_ms = millis();
 
-    configTiltServo();
-
-    
-    stepperObj.setCurrentPosition(0);
-    stepperObj.setMaxSpeed(STEPPER_MAX_SPEED);
-    stepperObj.setAcceleration(STEPPER_ACCEL);
-
+    // Setup stepper with default params
+    step.update_config(STEPS_PER_REV,STEPPER_MAX_SPEED,STEPPER_ACCEL);
 
     DataSerial.println(F("Configuration successful, entering scanning mode"));
+    t0_ms = millis();
 }
 
 void loop() {
-    
-    // If scan flag true and not in testing mode, enter scanning loop
-    if (startScanFlag && !testingMode) {
-        enterScanningLoop();
-        startScanFlag = false;
-    }
 
-    // If new target position available
-    if (newData) {
-        if (DO_PRINT_DEBUG)
-            DataSerial.println("Parsing string");
+    bool didStep = step.step_if_needed();
+    mpu.updateCurrTiltYaw(currTurretPitchAngleDeg,currTurretYawAngleDeg);
 
-        strcpy(tempChars, receivedChars);
-        parseData(); // Parse movement commands
-        newData = false;
+    // If in scanning mode, update scan state machine
+    if (scanningMode) {
+        switch (scanState) {
+            case 0: {
+                // Reset target to zero yaw, zero pitch
+                step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
+                step.set_rad_target(0.0, NOVALUE);
+                tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
 
-        // Update position estimate
-        if (updateCurrTiltYaw()) {
-            resetPosition();
-        }
-        
-        // Compute absolute target position from relative angles & current angles
-        currTargetYawAngleDeg = currTurretYawAngleDeg + relYawDeg;
-        currTargetPitchAngleDeg = constrain(currTurretPitchAngleDeg + relPitchDeg,TILT_MIN_ANGLE,TILT_MAX_ANGLE); // Bound pitch to prevent breaking stuff
-        if (DO_BOUND_YAW) { // Optionally bound yaw
-            currTargetYawAngleDeg = constrain(currTargetYawAngleDeg,-YAW_MAX_WIDTH_DEG/2,YAW_MAX_WIDTH_DEG/2);
-        }
-
-        DataSerial.print(F("currTurretYawAngleDeg = "));
-        DataSerial.print(currTurretYawAngleDeg);
-        DataSerial.print(F("\tSteps = "));
-        DataSerial.println(yawAngle2Steps(currTurretYawAngleDeg));
-        DataSerial.print(F("currTargetYawAngleDeg = "));
-        DataSerial.print(currTargetYawAngleDeg);
-        DataSerial.print(F("\tSteps = "));
-        DataSerial.println(yawAngle2Steps(currTargetYawAngleDeg));
-
-        DataSerial.print(F("currTurretPitchAngleDeg = "));
-        DataSerial.print(currTurretPitchAngleDeg);
-        DataSerial.print(F("\tServo Angle = "));
-        DataSerial.println(turretAngle2ServoAngle(currTurretPitchAngleDeg));
-        DataSerial.print(F("currTargetPitchAngleDeg = "));
-        DataSerial.print(currTargetPitchAngleDeg);
-        DataSerial.print(F("\tServo Angle = "));
-        DataSerial.println(turretAngle2ServoAngle(currTargetPitchAngleDeg));
-
-        // Update current stepper target
-        stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
-        // Update current servo target
-        tiltServo.startEaseTo(turretAngle2ServoAngle(currTargetPitchAngleDeg));
-
-        lastUpdateTime_ms = millis();
-    }
-
-    // Update position estimate
-    if (updateCurrTiltYaw() && (millis()-lastImuUpdateTime_ms > IMU_UPDATE_DELAY_MS)) {
-//        DataSerial.println(F("Turret Pitch/Yaw = "));
-//        DataSerial.println(currTurretPitchAngleDeg);
-//        DataSerial.println(currTurretYawAngleDeg);
-
-        resetPosition();
-        lastImuUpdateTime_ms = millis();
-    }
-
-    // Run stepper forward
-    stepperObj.run();
-
-    // Read more data from serial buffer
-    recvWithStartEndMarkers();
-
-    // If enough time has pased since the last update, reenter scanning mode
-    if ((millis() - lastUpdateTime_ms) > SCAN_RESET_TIME_MS && !testingMode){
-        if (DO_PRINT_DEBUG)
-            DataSerial.println("Restarting scan");
-        startScanFlag = true;
-    }
-}
-
-void enterScanningLoop() {
-    if (DO_PRINT_DEBUG)
-        DataSerial.println(F("Entering scanning loop"));
-
-    // Reset to 0,0
-    stepperObj.moveTo(0);
-    stepperObj.run();
-    tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
-    DataSerial.println(F("Resetting zero"));
-    while (stepperObj.distanceToGo() != 0) {
-        
-      
-        if (updateCurrTiltYaw()) {
-//            stepperObj.setCurrentPosition(currTurretYawSteps);
-        }
-        
-        stepperObj.run();
-
-        // Read more data from serial buffer
-        recvWithStartEndMarkers();
-
-        DataSerial.print(F("newData = "));
-        DataSerial.println(newData);
-
-        DataSerial.print(F("Distance to go: "));
-        DataSerial.println(stepperObj.distanceToGo());
-        
-        // Break out if command received from pi while resetting
-        if (newData){
-            DataSerial.println(F("Data received, exiting scan"));
-            lastUpdateTime_ms = millis();
-            resetPosition();
-            return;
+                scanState = 1;
+                break;
+            }
+            case 1 : {
+                // If reached target, set yaw target to scan width
+                if (step.distance_to_go() == 0) {
+                    step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
+                    step.set_rad_target(scanTargetYaw, NOVALUE);
+                    scanState = 2;
+                }
+                break;
+            }
+            case 2 : {
+                // If reached target, set yaw target to scan width in other direction
+                if (step.distance_to_go() == 0) {
+                    step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
+                    step.set_rad_target(-scanTargetYaw, NOVALUE);
+                    scanState = 1;
+                }
+                break;
+            }
         }
     }
 
-    DataSerial.println(F("Finished resetting zero"));
+    if (respondToSerial(receivedChars)) {
+        // Parse input into data chunks
+        vector<String> args;
+        parse_inputs(receivedChars, args);
+        parse_int(args[0], base_cmd, base_value);
 
-    // Bounce between +-X degrees yaw to scan for targets
-    int targetPos = int((SCAN_YAW_WIDTH_DEG/2.0)/360.0 * STEPS_PER_REV);
+        switch (tolower(base_cmd)) {
+            case 'g': {
+                switch (base_value) 
+                {
+                    case 0: {
+                        scanningMode = false;
+                        // LINEAR MOVE DO NOT WAIT
+                        float xpos, ypos, feedrate;
+                        gcode_command_floats gcode(args);
+                        if(gcode.com_exists('x'))
+                            step.set_rad_target(gcode.fetch('x'), gcode.fetch('f'));
+                        if(gcode.com_exists('y'))
+                            tiltServo.startEaseTo(turretAngle2ServoAngle(gcode.fetch('y')));
+                        break;
+                    }
+                    case 1: {
+                        // Overwrite current pos
+                        gcode_command_floats gcode(args);
+                        if(gcode.com_exists('x'))
+                            step.set_current_rads(gcode.fetch('x'));
+                        if(!gcode.com_exists('x'))
+                            step.set_current_rads(0);
+                        
+                        break;
+                    }
+                    case 2: {
+                        // Set scan mode on
+                        scanningMode = true;
+                        scanState = 0;
+                        break;
+                    }
+                }
+                break;
+            }
 
-    DataSerial.print(F("Target Position: "));
-    DataSerial.println(targetPos);
-
-    stepperObj.moveTo(targetPos);
-    DataSerial.println(F("Entering bounce loop"));
-    while (true) {
-        
-        // Keep stepper position updated by MPU to correct for any missed steps
-        if (updateCurrTiltYaw()) {
-//            stepperObj.setCurrentPosition(currTurretYawSteps);
-        }
-        
-        stepperObj.run();
-
-        // Read more data from serial buffer
-        recvWithStartEndMarkers();
-
-//        DataSerial.print(F("newData = "));
-//        DataSerial.println(newData);
-//
-//        DataSerial.print(F("Distance to go: "));
-//        DataSerial.println(stepperObj.distanceToGo());
-
-        
-        // Break out if command received from pi
-        if (newData){
-            if (DO_PRINT_DEBUG)
-                DataSerial.println(F("Data received, exiting scan"));
-            lastUpdateTime_ms = millis();
-            resetPosition();
+            case 'm': {
+                switch (base_value) 
+                {
+                    case 0: {
+                        // Initialize MPU
+                        mpu.init();
+                        break;
+                    }
+                    case 1: {
+                        // Reset DMP
+                        mpu.resetDMP();
+                        break;
+                    }
+                    case 2: {
+                        // Configure tilt servo
+                        configTiltServo();
+                        break;
+                    }
+                    case 3: {
+                        // Get current attitude
+                        mpu.updateCurrTiltYaw(currTurretPitchAngleDeg,currTurretYawAngleDeg);
+                        float yaw = float(currTurretYawAngleDeg);
+                        float tilt = float(currTurretPitchAngleDeg);
+                        DataSerial.print(yaw, 4);
+                        DataSerial.print(",");
+                        DataSerial.print(tilt, 4);
+                        DataSerial.print("\n");
+                        break;
+                    }
+                }
+                break;
+            }
+            case 'c': {
+                switch (base_value) 
+                {
+                    case 0: {
+                        // Set speed params
+                        gcode_command_floats gcode(args);
+                        step.update_config(gcode.fetch('a'), gcode.fetch('b'), gcode.fetch('c'));
+                        tiltServo.setSpeed(gcode.fetch('d'));
+                        break;
+                    }
+                    case 1: {
+                        // Get current yaw velocity
+                        float xvel = step.get_current_vel();
+                        DataSerial.print(xvel, 4);
+                        DataSerial.print("\n");
+                        break;
+                    }
+                }
+                break;
+            }
             break;
         }
-        if (stepperObj.distanceToGo() == 0){
-            targetPos *= -1;
-
-            if (DO_PRINT_DEBUG)
-              DataSerial.println(F("Switching direction"));
-
-
-            resetPosition();
-            stepperObj.moveTo(targetPos);
-        }
+        DataSerial.println("ok");
     }
-}
-
-void setTiltAngle(double turretAngle) {
-    tiltServo.writeMicroseconds(tiltAngle2Pulse(turretAngle2ServoAngle(turretAngle)));
-}
-
-void resetPosition(){
-    long currPos = stepperObj.currentPosition();
-
-    // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
-    long currStepIdx = currPos % 4;
-    long newStepIdx = currTurretYawSteps % 4;
-    long newPos = currTurretYawSteps + currStepIdx - newStepIdx;
-
-    float currSpeed = stepperObj.speed();
-    stepperObj.setCurrentPosition(newPos);
-    stepperObj.moveTo(yawAngle2Steps(currTargetYawAngleDeg));
-    stepperObj.setSpeed(currSpeed);
-}
-
-void dmpDataReady() {
-    mpuInterrupt = true;
+    
 }
 
 // Convert servo angle to turret angle
@@ -311,100 +242,11 @@ double turretAngle2ServoAngle(double turretAngleDeg) {
     return 360.0 - SERVO_2_TILTSHAFT_ANGLE - thetaCS - servoAngleOffset;
 }
 
-void initMPU() {
-    // Setup mpu6050
-    // join I2C bus (I2Cdev library doesn't do this automatically)
-    Wire.begin();
-    Wire.setClock(400000); // 400kHz I2C clock.
-
-    // initialize device
-    DataSerial.println(F("Initializing MPU..."));
-    mpu.initialize();
-    pinMode(INTERRUPT_PIN, INPUT);
-
-    // verify connection
-    DataSerial.println(F("Testing MPU connection..."));
-    bool connectionStatus = mpu.testConnection();
-    DataSerial.println(connectionStatus ? F("MPU6050 connection successful") : F("Error: MPU6050 connection failed"));
-    while (!connectionStatus) {}
-
-    // load and configure the DMP
-    devStatus = mpu.dmpInitialize();
-
-    // Return status code
-    DataSerial.print(F("DMP Status: "));
-    DataSerial.println(devStatus);
-    if (devStatus != 0) {
-        DataSerial.println(F("Error: DMP init failed"));
-        while (true) {}
-    }
-
-    // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(GYROX_OFFSET);
-    mpu.setYGyroOffset(GYROY_OFFSET);
-    mpu.setZGyroOffset(GYROZ_OFFSET);
-    mpu.setXAccelOffset(ACCELX_OFFSET);
-    mpu.setYAccelOffset(ACCELY_OFFSET);
-    mpu.setZAccelOffset(ACCELZ_OFFSET);
-
-    mpu.setDMPEnabled(true);
-
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
-    mpuIntStatus = mpu.getIntStatus();
-
-    // get expected DMP packet size for later comparison
-    packetSize = mpu.dmpGetFIFOPacketSize();
-}
-
-bool updateCurrTiltYaw() {
-    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetGravity(&gravity, &q);
-        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-
-        currTurretPitchAngleDeg = ypr[2] * RAD_TO_DEG * -1.0;
-        currTurretYawAngleDeg= ypr[0] * RAD_TO_DEG;
-
-        if (currTurretYawAngleDeg > 180.0) currTurretYawAngleDeg -= 360.0;
-        else if (currTurretYawAngleDeg <= -180.0) currTurretYawAngleDeg += 360.0;
-
-        currTurretYawSteps = yawAngle2Steps(currTurretYawAngleDeg);
-
-        return true;
-    }
-    return false;
-}
-
-double findApproxPitch() {
-    int numSamples = 500;
-    long sums[] = {0,0};
-    double avgY;
-    double avgZ;
-    VectorInt16 accel;         // [x, y, z]
-
-    // Get average acceleration over many samples
-    int i = 1;
-    while (i < numSamples) {
-        if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
-            mpu.dmpGetAccel(&accel, fifoBuffer);
-            sums[0] = sums[0] + accel.y;
-            sums[1] = sums[1] + accel.z;
-
-            i++;
-        }
-    }
-
-    avgY = double(sums[0])/numSamples;
-    avgZ = double(sums[1])/numSamples;
-
-    // Use computed accelerations to approximate current turret pitch angle
-    return -asin(avgY/avgZ)*RAD_TO_DEG;
-}
 
 void configTiltServo(){
     DataSerial.println(F("Initializing Tilt Servo..."));
     
-    double approxPitch = findApproxPitch();
+    double approxPitch = mpu.findApproxPitch();
     DataSerial.print(F("approxPitch: "));
     DataSerial.println(approxPitch);
 
@@ -442,7 +284,7 @@ void configTiltServo(){
 
     delay(500); // Wait to stop moving
 
-    approxPitch = findApproxPitch(); // Recompute approx pitch
+    approxPitch = mpu.findApproxPitch(); // Recompute approx pitch
 
     DataSerial.print(F("approxPitch: "));
     DataSerial.println(approxPitch);
@@ -456,68 +298,5 @@ void configTiltServo(){
     
     // If approximate pitch close enough to level, reset DMP & exit
     mpu.resetDMP();
-    mpu.resetFIFO();
-    mpu.getIntStatus();
     return;
-}
-
-
-// Read serial data into buffer without blocking & detect when end marker received
-void recvWithStartEndMarkers() {
-    static boolean recvInProgress = false;
-    static byte ndx = 0;
-    char startMarker = '<';
-    char endMarker = '>';
-    char rc;
-
-//    if (DO_PRINT_DEBUG)
-//        DataSerial.println(F("Checking for new characters"));
-//            
-
-    while (DataSerial.available() > 0 && newData == false) {
-        rc = DataSerial.read();
-
-//        if (DO_PRINT_DEBUG)
-//          DataSerial.println(F("Checking"));
-
-        if (recvInProgress == true) {
-            if (rc != endMarker) {
-                receivedChars[ndx] = rc;
-                ndx++;
-                if (ndx >= MAX_MSG_LEN) {
-                    ndx = MAX_MSG_LEN - 1;
-                }
-            }
-            else {
-                receivedChars[ndx] = '\0'; // terminate the string
-                if (DO_PRINT_DEBUG){
-                  DataSerial.println(F("End character received"));
-                  DataSerial.println(receivedChars);
-                }
-                recvInProgress = false;
-                ndx = 0;
-                newData = true;
-            }
-        }
-
-        else if (rc == startMarker) {
-            recvInProgress = true;
-        }
-    }
-}
-
-// Parse received target position by splitting the data into its parts
-void parseData() { 
-    char * strtokIndx; // this is used by strtok() as an index
-
-    strtokIndx = strtok(tempChars,",");     // get the yaw
-    relYawDeg = atof(strtokIndx);           // convert to a float
-
-    strtokIndx = strtok(NULL, ",");         // get the pitch
-    relPitchDeg = atof(strtokIndx);         // convert to a float
-
-    if (DO_PRINT_DEBUG){
-        DebugSerial.println(relYawDeg);
-        DebugSerial.println(relPitchDeg);
-    }
 }
