@@ -13,7 +13,7 @@
 #include "stepper.h"
 #include "imu.h"
 #include "gcode.h"
-// #include "funcs.ino"
+//#include "funcs.ino"
 #include "defs.h"
 
 // Setup hardware objects
@@ -32,13 +32,13 @@ double servoAngleOffset = 0; // Angle offset
 unsigned long lastUpdateTime_ms;
 unsigned long lastImuUpdateTime_ms;
 
+bool doConfigTiltFlag = false;
 
 bool scanningMode = false;
 uint8_t scanState = 0;
 int scanTargetYaw = SCAN_YAW_WIDTH_DEG/2.0;
 
 unsigned long t0_ms;
-
 char receivedChars[MAX_MSG_LEN];
 
 char base_cmd;
@@ -95,6 +95,11 @@ void loop() {
     bool didStep = step.step_if_needed();
     mpu.updateCurrTiltYaw(currTurretPitchAngleDeg,currTurretYawAngleDeg);
 
+    if (doConfigTiltFlag) {
+        int r = configTiltServo();
+        doConfigTiltFlag = false;
+    }
+
     // If in scanning mode, update scan state machine
     if (scanningMode) {
         switch (scanState) {
@@ -144,16 +149,16 @@ void loop() {
                         float xpos, ypos, feedrate;
                         gcode_command_floats gcode(args);
                         if(gcode.com_exists('x'))
-                            step.set_rad_target(gcode.fetch('x'), gcode.fetch('f'));
+                            step.set_rad_target(gcode.fetch('x') * DEG_TO_RAD, gcode.fetch('f'));
                         if(gcode.com_exists('y'))
-                            tiltServo.startEaseTo(turretAngle2ServoAngle(gcode.fetch('y')));
+                            tiltServo.startEaseTo(turretAngle2ServoAngle(gcode.fetch('y') * DEG_TO_RAD));
                         break;
                     }
                     case 1: {
                         // Overwrite current pos
                         gcode_command_floats gcode(args);
                         if(gcode.com_exists('x'))
-                            step.set_current_rads(gcode.fetch('x'));
+                            step.set_current_rads(gcode.fetch('x') * DEG_TO_RAD);
                         if(!gcode.com_exists('x'))
                             step.set_current_rads(0);
                         
@@ -163,6 +168,14 @@ void loop() {
                         // Set scan mode on
                         scanningMode = true;
                         scanState = 0;
+                        break;
+                    }
+                    case 3: {
+                        // Set scan mode off & halt in place
+                        scanningMode = false;
+                        scanState = 0;
+                        step.set_rad_target(step.get_current_rads(),NOVALUE);
+                        tiltServo.stop();
                         break;
                     }
                 }
@@ -184,7 +197,7 @@ void loop() {
                     }
                     case 2: {
                         // Configure tilt servo
-                        int r = configTiltServo();
+                        doConfigTiltFlag = true;
                         break;
                     }
                     case 3: {
