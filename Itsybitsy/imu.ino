@@ -1,5 +1,5 @@
 
-//#include "imu.h"
+// #include "imu.h"
 #include "defs.h"
 #include <algorithm>
 #include <vector>
@@ -14,7 +14,7 @@ void dmpDataReady() {
 // IMU Wrapper Struct
 
 
-void imu::init() {
+int imu::init() {
     // Setup mpu6050
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
@@ -29,7 +29,7 @@ void imu::init() {
     DataSerial.println(F("Testing MPU connection..."));
     bool connectionStatus = mpu.testConnection();
     DataSerial.println(connectionStatus ? F("MPU6050 connection successful") : F("Error: MPU6050 connection failed"));
-    while (!connectionStatus) {}
+    if (!connectionStatus) return 0;
 
     // load and configure the DMP
     devStatus = mpu.dmpInitialize();
@@ -39,7 +39,7 @@ void imu::init() {
     DataSerial.println(devStatus);
     if (devStatus != 0) {
         DataSerial.println(F("Error: DMP init failed"));
-        while (true) {}
+        return 0;
     }
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -60,6 +60,8 @@ void imu::init() {
 
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
+
+    return 1;
 }
 
 bool imu::updateCurrTiltYaw(double& currTurretPitchAngleDeg, double& currTurretYawAngleDeg) {

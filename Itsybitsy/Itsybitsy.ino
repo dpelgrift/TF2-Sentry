@@ -174,7 +174,7 @@ void loop() {
                 {
                     case 0: {
                         // Initialize MPU
-                        mpu.init();
+                        int r = mpu.init();
                         break;
                     }
                     case 1: {
@@ -184,7 +184,7 @@ void loop() {
                     }
                     case 2: {
                         // Configure tilt servo
-                        configTiltServo();
+                        int r = configTiltServo();
                         break;
                     }
                     case 3: {
@@ -243,7 +243,7 @@ double turretAngle2ServoAngle(double turretAngleDeg) {
 }
 
 
-void configTiltServo(){
+int configTiltServo(){
     DataSerial.println(F("Initializing Tilt Servo..."));
     
     double approxPitch = mpu.findApproxPitch();
@@ -293,10 +293,10 @@ void configTiltServo(){
         
         DataSerial.print(F("Error: Zeroing unsuccessful, approxPitch = "));
         DataSerial.println(approxPitch);
-        while (true) {}
+       return 0;
     }
     
     // If approximate pitch close enough to level, reset DMP & exit
     mpu.resetDMP();
-    return;
+    return 1;
 }

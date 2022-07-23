@@ -15,7 +15,7 @@ using namespace std;
 
 struct imu {
 
-    void init();
+    int init();
     void resetDMP();
     double findApproxPitch();
     bool updateCurrTiltYaw(double& currTurretPitchAngleDeg, double& currTurretYawAngleDeg);
