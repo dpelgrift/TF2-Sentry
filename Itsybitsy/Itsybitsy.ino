@@ -201,6 +201,13 @@ void loop() {
                         break;
                     }
                     case 3: {
+                        // Set speed params
+                        gcode_command_floats gcode(args);
+                        step.update_config(gcode.fetch('a'), gcode.fetch('b'), gcode.fetch('c'));
+                        tiltServo.setSpeed(gcode.fetch('d'));
+                        break;
+                    }
+                    case 4: {
                         // Get current attitude
                         mpu.updateCurrTiltYaw(currTurretPitchAngleDeg,currTurretYawAngleDeg);
                         float yaw = float(currTurretYawAngleDeg);
@@ -211,20 +218,7 @@ void loop() {
                         DataSerial.print("\n");
                         break;
                     }
-                }
-                break;
-            }
-            case 'c': {
-                switch (base_value) 
-                {
-                    case 0: {
-                        // Set speed params
-                        gcode_command_floats gcode(args);
-                        step.update_config(gcode.fetch('a'), gcode.fetch('b'), gcode.fetch('c'));
-                        tiltServo.setSpeed(gcode.fetch('d'));
-                        break;
-                    }
-                    case 1: {
+                    case 5: {
                         // Get current yaw velocity
                         float xvel = step.get_current_vel();
                         DataSerial.print(xvel, 4);
@@ -311,5 +305,7 @@ int configTiltServo(){
     
     // If approximate pitch close enough to level, reset DMP & exit
     mpu.resetDMP();
+
+    DataSerial.print(F("tilt ok"));
     return 1;
 }

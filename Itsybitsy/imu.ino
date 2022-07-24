@@ -61,6 +61,7 @@ int imu::init() {
     // get expected DMP packet size for later comparison
     packetSize = mpu.dmpGetFIFOPacketSize();
 
+    DataSerial.println(F("mpu ok"));
     return 1;
 }
 
