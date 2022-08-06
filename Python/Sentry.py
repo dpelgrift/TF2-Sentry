@@ -1,6 +1,7 @@
 from CameraDriver import CameraDriver
 from SerialDevice import *
 import time
+import numpy as np
 import Config as cfg
 import subprocess as sp
 from simple_pid import PID
@@ -42,7 +43,7 @@ class Sentry(object):
         ret = self.cam.camera.capture_array()
 
         if cfg.DEBUG_MODE:
-            print(f'Image Shape: {ret.shape()}')
+            print(f'Image Shape: {np.array(ret).shape()}')
 
         if len(ret.flatten()) == 0:
             self.errorDetected("Camera connection failed")
