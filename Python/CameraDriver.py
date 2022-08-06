@@ -1,5 +1,5 @@
-__version__ = '0.0.1'
-
+from picamera.array import PiRGBArray
+from picamera import PiCamera
 import time
 import os
 import cv2
@@ -12,7 +12,9 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
-        self.capture = None
+        self.camera = PiCamera()
+        self.camera.resolution = cfg.videoResolution;
+        self.rawCapture = PiRGBArray(self.camera)
 
         self.tlast = time.time()
         self.frameNum = 0
@@ -21,7 +23,7 @@ class CameraDriver(object):
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
         self.fullBodyCascade = cv2.CascadeClassifier(cfg.cascadeModelPath)
-        self.tracker = cv2.TrackerKCF_create()
+        # self.tracker = cv2.TrackerKCF_create()
         if cfg.DISP_FRAME:
             self.rawFrameWin = cv2.namedWindow('rawframes',flags=cv2.WINDOW_AUTOSIZE)
             self.targetFrameWin = cv2.namedWindow('targetframes',flags=cv2.WINDOW_AUTOSIZE)
@@ -34,15 +36,15 @@ class CameraDriver(object):
         im.save(os.path.join(cfg.imgSaveDir, imPath))
     
     
-    def start(self):
-        self.capture = cv2.VideoCapture(0)
+    # def start(self):
+    #     self.capture = cv2.VideoCapture(0)
 
-        w, h = self.resolution
-        self.capture.set(3,w)
-        self.capture.set(4,h) 
+    #     w, h = self.resolution
+    #     self.capture.set(3,w)
+    #     self.capture.set(4,h) 
 
-    def stop(self):
-        self.capture.release()
+    # def stop(self):
+    #     self.capture.release()
 
     def resetLock(self):
         self.tracker.clear()
@@ -132,7 +134,8 @@ class CameraDriver(object):
         cv2.waitKey(1)
 
     def getFrame(self):
-        _, frame = self.capture.read()
+        self.camera.capture(self.rawCapture, format="bgr")
+        frame = self.rawCapture.array
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if cfg.DISP_FRAME:
