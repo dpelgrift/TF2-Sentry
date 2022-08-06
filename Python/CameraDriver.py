@@ -1,5 +1,4 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+from picamera2 import Picamera2
 import time
 import os
 import cv2
@@ -12,10 +11,8 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
-        self.camera = PiCamera()
-        self.camera.resolution = cfg.videoResolution
-        self.rawCapture = PiRGBArray(self.camera)
-
+        self.camera = Picamera2()
+        
         self.tlast = time.time()
         self.frameNum = 0
         self.targetLocked = False
@@ -36,12 +33,16 @@ class CameraDriver(object):
         im.save(os.path.join(cfg.imgSaveDir, imPath))
     
     
-    # def start(self):
-    #     self.capture = cv2.VideoCapture(0)
+    def start(self):
+        self.camera.configure(self.camera.preview_configuration(main={"size":cfg.videoResolution}))
 
-    #     w, h = self.resolution
-    #     self.capture.set(3,w)
-    #     self.capture.set(4,h) 
+        self.camera.start()
+
+        # self.capture = cv2.VideoCapture(0)
+
+        # w, h = self.resolution
+        # self.capture.set(3,w)
+        # self.capture.set(4,h) 
 
     # def stop(self):
     #     self.capture.release()
@@ -134,7 +135,7 @@ class CameraDriver(object):
 
     def getFrame(self):
         self.camera.capture(self.rawCapture, format="bgr")
-        frame = self.rawCapture.array
+        frame = self.camera.capture_array()
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if cfg.DISP_FRAME:
