@@ -1,5 +1,3 @@
-__version__ = '0.0.1'
-
 import serial
 import serial.tools.list_ports
 import Config as cfg
@@ -27,7 +25,7 @@ class SerialDevice(object):
                 else:
                     last_resp = resp
                     if cfg.DEBUG_MODE:
-                        print('serial response:', last_resp)
+                        print('Serial Response:', last_resp)
 
     def verifySerial(self,msg1,msg2,timeOut=None):
         if timeOut == None:
@@ -49,7 +47,7 @@ class SerialDevice(object):
                 if resp in r:
                     return True
                 else:
-                    print("Serial Response:" + r)
+                    print('Serial Response:' + r)
         return False
 
     def readSerialLine(self):

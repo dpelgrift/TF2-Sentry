@@ -43,8 +43,6 @@ wTargetCenter = videoResolution[0]/2
 horizFov = 124
 vertFov = 93
 
-# cascadeModelPath = 'haarcascade_fullbody.xml' 
-cascadeModelPath = 'haarcascade_frontalface_default.xml' 
 onTargetPixelProximity = 20
 scaleFactor = 1.2
 minNeighbors = 5
@@ -62,9 +60,12 @@ ki = 350/1000000
 kd = 5/1000000
 
 """ PATHS """
-audioDir = '/home/pi/audio/'
-imgSaveDir = '/home/pi/imgs/'
-vidSaveDir = '/home/pi/vids/'
+audioDir = '~/audio/'
+imgSaveDir = '~/imgs/'
+vidSaveDir = '~/vids/'
+
+# cascadeModelPath = 'haarcascade_fullbody.xml' 
+cascadeModelPath = 'haarcascade_frontalface_default.xml' 
 
 """ SERIAL PARAMS """
 BAUDRATE = 115200
@@ -79,3 +80,5 @@ SAVE_IMGS = True
 SAVE_VID = True
 DISP_FRAME = False
 BYPASS_SERIAL_VERIFY = False
+DO_SCAN = True
+DO_CLEAR_IMGS = False

@@ -88,7 +88,6 @@ class CameraDriver(object):
         frame = self.getFrame()
 
         fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,cfg.scaleFactor,cfg.minNeighbors)
-        # upperBodyTargets = self.upperBodyCascade.detectMultiScale(frame,1.2,6)
 
         # If targets empty, return None
         if len(fullBodyTargets) == 0:
@@ -103,7 +102,7 @@ class CameraDriver(object):
             [a, b, c, d] = fullBodyTargets[0]
 
         else:
-            # Otherwise, find the target closest to center of frame
+            # Otherwise, get the target closest to center of frame
             midPoint = np.around(np.array(cfg.videoResolution)/2)
             targetArray = np.array(fullBodyTargets)
             
