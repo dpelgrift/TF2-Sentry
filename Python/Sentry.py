@@ -40,7 +40,7 @@ class Sentry(object):
         # Test video capture by trying to read a frame
         # ret = self.cam.camera.capture()
         ret = self.cam.camera.capture_array()
-        if len(ret) > 0:
+        if len(ret.flatten()) == 0:
             self.errorDetected("Camera connection failed")
         print("Camera connection successful")
 
