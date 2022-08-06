@@ -29,9 +29,9 @@ def testSelector(val,sentry):
     elif val == 4:
         testFlywheels(sentry)
     elif val == 5:
-        testCamera(sentry)
-    elif val == 6:
         testFiring(sentry)
+    elif val == 6:
+        testCamera(sentry)
     elif val == 7:
         sendMove(sentry)
     elif val == 8:
