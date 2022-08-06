@@ -40,6 +40,10 @@ class Sentry(object):
         # Test video capture by trying to read a frame
         # ret = self.cam.camera.capture()
         ret = self.cam.camera.capture_array()
+
+        if cfg.DEBUG_MODE:
+            print(f'Image Shape: {ret.shape()}')
+
         if len(ret.flatten()) == 0:
             self.errorDetected("Camera connection failed")
         print("Camera connection successful")
@@ -60,10 +64,6 @@ class Sentry(object):
         targetLocked = False
         if cfg.DEBUG_MODE:
             print("Beginning main loop")
-
-        if cfg.DO_CLEAR_IMGS:
-            os.system(f'rm -rf {cfg.imgSaveDir}')
-            os.system(f'mkdir {cfg.imgSaveDir}')
 
         if cfg.DO_SCAN:
             self.motors.startScan()
@@ -242,6 +242,11 @@ if __name__=='__main__':
         os.makedirs(cfg.audioDir)
     if not os.path.exists(cfg.vidSaveDir):
         os.makedirs(cfg.vidSaveDir)
+
+    
+    if cfg.DO_CLEAR_IMGS:
+        os.system(f'rm -rf {cfg.imgSaveDir}')
+        os.system(f'mkdir {cfg.imgSaveDir}')
 
     sen = Sentry()
     if cfg.TEST_MODE:
