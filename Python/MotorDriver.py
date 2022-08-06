@@ -1,5 +1,3 @@
-__version__ = '0.0.1'
-
 import Config as cfg
 import time
 from numpy import pi
@@ -28,7 +26,7 @@ class MotorDriver(object):
         self.sd.command('G0 X0 Y0')
 
     def move(self, targetYaw, targetTilt):
-        self.sd.command('G0 X{targetYaw:.2f} Y{targetYaw:.2f}')
+        self.sd.command(f'G0 X{targetYaw} Y{targetTilt}')
 
     def setYaw(self,yawDeg):
         self.sd.command(f'G1 X{yawDeg:.2f}')

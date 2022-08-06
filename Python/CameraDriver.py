@@ -13,7 +13,7 @@ class CameraDriver(object):
         self.resolution = res
         self.isEnabled = False
         self.camera = PiCamera()
-        self.camera.resolution = cfg.videoResolution;
+        self.camera.resolution = cfg.videoResolution
         self.rawCapture = PiRGBArray(self.camera)
 
         self.tlast = time.time()

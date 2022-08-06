@@ -2,10 +2,14 @@ import Config as cfg
 import time
 from AudioPlayer import *
 
-testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher\n"+\
-                        "4: Test flywheels, 5: Test Itsybitsy, 6: Test Camera\n"+\
-                        "7: Test firing sequence, 8: test multiple commands in sequence"
- 
+testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher, 4: Test flywheels,\n"+\
+                        "5: Test firing sequence, 6: Test camera, \n"+\
+                        "7: Send move command, 8: Send multiple moves in a row, 9: Get current Attitude,\n" + \
+                        "10: Send arbitrary gcode"
+
+gcodeSpecString = "G0: Send move, G1: Set yaw, G2: Start Scan, G3: Stop scan\n" + \
+                  "M0: Init MPU, M1: Reset DMP, M2: Config tilt servo,\n" + \
+                  "M3: Set speed params, M4: Get current attitude, M5: Get current yaw velocity"
 
 def testingMode(sentry):
     print("Test Mode Entered")
@@ -25,13 +29,17 @@ def testSelector(val,sentry):
     elif val == 4:
         testFlywheels(sentry)
     elif val == 5:
-        testItsy(sentry)
-    elif val == 6:
         testCamera(sentry)
-    elif val == 7:
+    elif val == 6:
         testFiring(sentry)
+    elif val == 7:
+        sendMove(sentry)
     elif val == 8:
         testMultiCommand(sentry)
+    elif val == 9:
+        sendGCode(sentry)
+    elif val == 10:
+        sendGCode(sentry)
 
 
 def testAudio(sentry):
@@ -59,7 +67,8 @@ def testFlywheels(sentry):
     time.sleep(5.0)
     sentry.flyWheels.off()
 
-def testItsy(sentry):
+
+def sendMove(sentry):
     yaw = input("Specify relative yaw (degrees): ")
     tilt = input("Specify relative tilt (degrees): ")
     time.sleep(1.0)
@@ -84,18 +93,36 @@ def testMultiCommand(sentry):
     playSpotSound()
     time.sleep(0.5)
     for c in range(int(numCommands)):
-        
         sentry.relMove(float(tilt),float(yaw))
         time.sleep(0.5)
-    
         resp = sentry.sd.readSerialLine()
         while resp != '':
             if resp != '':
                 print(f'T: {time.time()-cfg.t0}, ' + resp)
             resp = sentry.sd.readSerialLine()
 
+def getCurrAttitude(sentry):
+    print("Getting attitude: ")
+    yaw,pitch = sentry.motors.getCurrYawPitch()
+    print(f'Yaw = {yaw}, Pitch = {pitch}')
+    time.sleep(1.0)
+
+def sendGCode(sentry):
+    print(gcodeSpecString)
+    comm = input("Specify command(s) to send: ")
+    resp = sentry.motors.sd.command(comm)
+    print(f'Resp = {resp}')
+    # Pass through debug messages from ItsyBitsy
+    initTime = time.time()
+    while time.time() - initTime < 3:
+        resp = sentry.sd.readSerialLine()
+        if resp != '':
+            print(resp)
+    time.sleep(1.0)
+
 def testCamera(sentry):
     sentry.cam.getFrame()
+    time.sleep(1.0)
 
 def testFiring(sentry):
     hopperVal = input("Specify input to hopper CR servo (-1 to 1): ")
