@@ -22,7 +22,7 @@ class CameraDriver(object):
 
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
         # self.fullBodyCascade = cv2.CascadeClassifier('haarcascade_upperbody.xml')
-        self.fullBodyCascade = cv2.CascadeClassifier(cfg.cascadeModelPath)
+        self.fullBodyCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cfg.cascadeModelPath)
         # self.tracker = cv2.TrackerKCF_create()
         if cfg.DISP_FRAME:
             self.rawFrameWin = cv2.namedWindow('rawframes',flags=cv2.WINDOW_AUTOSIZE)
