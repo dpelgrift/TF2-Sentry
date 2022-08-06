@@ -134,7 +134,7 @@ class CameraDriver(object):
         cv2.waitKey(1)
 
     def getFrame(self):
-        self.camera.capture(self.rawCapture, format="bgr")
+        # self.camera.capture(self.rawCapture, format="bgr")
         frame = self.camera.capture_array()
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 

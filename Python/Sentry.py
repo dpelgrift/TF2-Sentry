@@ -36,8 +36,10 @@ class Sentry(object):
             
         # Create Camera Handler & Verify Connection
         self.cam = CameraDriver()
+        self.cam.start()
         # Test video capture by trying to read a frame
-        ret = self.cam.camera.capture()
+        # ret = self.cam.camera.capture()
+        ret = self.cam.camera.capture_array()
         if not ret:
             self.errorDetected("Camera connection failed")
         print("Camera connection successful")
