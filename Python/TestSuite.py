@@ -3,9 +3,9 @@ import time
 from AudioPlayer import *
 
 testModeCommandString = "1: Test audio, 2: Test hopper, 3: Test pusher, 4: Test flywheels,\n"+\
-                        "5: Test firing sequence, 6: Test camera, \n"+\
-                        "7: Send move command, 8: Send multiple moves in a row, 9: Get current Attitude,\n" + \
-                        "10: Send arbitrary gcode"
+                        "5: Test firing sequence, 6: Test camera, 7: Test target detection \n"+\
+                        "8: Send move command, 9: Send multiple moves in a row, 10: Get current Attitude,\n" + \
+                        "11: Send arbitrary gcode"
 
 gcodeSpecString = "G0: Send move, G1: Set yaw, G2: Start Scan, G3: Stop scan\n" + \
                   "M0: Init MPU, M1: Reset DMP, M2: Config tilt servo,\n" + \
@@ -33,12 +33,14 @@ def testSelector(val,sentry):
     elif val == 6:
         testCamera(sentry)
     elif val == 7:
-        sendMove(sentry)
+        testTargetSearch(sentry)
     elif val == 8:
-        testMultiCommand(sentry)
+        sendMove(sentry)
     elif val == 9:
-        sendGCode(sentry)
+        testMultiCommand(sentry)
     elif val == 10:
+        getCurrAttitude(sentry)
+    elif val == 11:
         sendGCode(sentry)
 
 
@@ -122,6 +124,20 @@ def sendGCode(sentry):
 
 def testCamera(sentry):
     sentry.cam.getFrame()
+    time.sleep(1.0)
+
+def testTargetSearch(sentry):
+    time.sleep(1.0)
+    print("Searching for targets:")
+    initTime = time.time()
+    while time.time() - initTime < 10:
+        t1 = time.time()
+        bbox, frame = sentry.cam.findTarget()
+        t2 = time.time()
+        print(f'Search took {t2-t1:.3f} sec')
+        if bbox is not None:
+            print(f'Target Found, bbox: {bbox}')
+
     time.sleep(1.0)
 
 def testFiring(sentry):
