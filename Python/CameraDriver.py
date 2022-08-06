@@ -34,7 +34,7 @@ class CameraDriver(object):
     
     
     def start(self):
-        config = self.camera.create_preview_configuration(main={"size": cfg.videoResolution})
+        config = self.camera.create_preview_configuration(main={"size": cfg.videoResolution, "format": "BGR888"})
         self.camera.configure(config)
 
         self.camera.start()
