@@ -71,15 +71,16 @@ void setup() {
     while (DataSerial.available() == 0) {}
     String val = DataSerial.readStringUntil('\n');
     DataSerial.flush();
-    if (val.startsWith("test")) {
-        delay(500);
-        DataSerial.println(F("testing"));
-    } else if (val.startsWith("marco")) {
-        DataSerial.println(F("polo"));
-    }
-    if (DO_PRINT_DEBUG){
-        DebugSerial.println(val);
-    }
+    
+//    if (val.startsWith("test")) {
+//        delay(500);
+//        DataSerial.println(F("testing"));
+//    } else if (val.startsWith("marco")) {
+//        DataSerial.println(F("polo"));
+//    }
+//    if (DO_PRINT_DEBUG){
+//        DebugSerial.println(val);
+//    }
 
     lastImuUpdateTime_ms = millis();
 
