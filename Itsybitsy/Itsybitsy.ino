@@ -67,11 +67,11 @@ void setup() {
 
     DataSerial.begin(BAUDRATE);
     DataSerial.flush();
-    // Search for verification string
-    while (DataSerial.available() == 0) {}
-    String val = DataSerial.readStringUntil('\n');
-    DataSerial.flush();
     
+    // Search for verification string
+//    while (DataSerial.available() == 0) {}
+//    String val = DataSerial.readStringUntil('\n');
+//    DataSerial.flush();
 //    if (val.startsWith("test")) {
 //        delay(500);
 //        DataSerial.println(F("testing"));
@@ -82,13 +82,12 @@ void setup() {
 //        DebugSerial.println(val);
 //    }
 
-    lastImuUpdateTime_ms = millis();
-
     // Setup stepper with default params
     step.update_config(STEPS_PER_REV,STEPPER_MAX_SPEED,STEPPER_ACCEL);
 
     DataSerial.println(F("Configuration successful, entering scanning mode"));
     t0_ms = millis();
+    lastImuUpdateTime_ms = millis();
 }
 
 void loop() {
