@@ -28,8 +28,6 @@ class Sentry(object):
         else:
             self.verifySerial()
 
-        r1 = self.motors.initMPU()
-        r2 = self.motors.configTiltServo()
 
 
         cfg.t0 = time.time()
@@ -39,7 +37,7 @@ class Sentry(object):
         self.cam.start()
         # Test video capture by trying to read a frame
         # ret = self.cam.camera.capture()
-        ret = self.cam.camera.capture_array()
+        # ret = self.cam.camera.capture_array()
 
         if cfg.DEBUG_MODE:
             print(f'Image Shape: {ret.shape}')
@@ -54,6 +52,9 @@ class Sentry(object):
     
     def mainLoop(self):
         # Main function loop
+        r1 = self.motors.initMPU()
+        r2 = self.motors.configTiltServo()
+
         firingTime= None
         isFiring = False
         flyWheelsActive = False
