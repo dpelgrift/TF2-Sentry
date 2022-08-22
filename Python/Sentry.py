@@ -39,12 +39,12 @@ class Sentry(object):
         # ret = self.cam.camera.capture()
         # ret = self.cam.camera.capture_array()
 
-        if cfg.DEBUG_MODE:
-            print(f'Image Shape: {ret.shape}')
+        # if cfg.DEBUG_MODE:
+        #     print(f'Image Shape: {ret.shape}')
 
-        if len(ret.flatten()) == 0:
-            self.errorDetected("Camera connection failed")
-        print("Camera connection successful")
+        # if len(ret.flatten()) == 0:
+        #     self.errorDetected("Camera connection failed")
+        # print("Camera connection successful")
 
         self.pitchPid = PID(cfg.kp, cfg.ki, cfg.kd)
         self.yawPid = PID(cfg.kp, cfg.ki, cfg.kd)
