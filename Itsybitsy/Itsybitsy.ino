@@ -1,24 +1,11 @@
-#include "I2Cdev.h"
-
-#include "MPU6050_6Axis_MotionApps20.h"
-//#include "MPU6050.h" // not necessary if using MotionApps include file
-
-// Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
-// is used in I2Cdev.h
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-    #include "Wire.h"
-#endif
-
 #include "ServoEasing.h"
-//#include "stepper.h"
 #include "AccelStepper.h"
 #include "imu.h"
 #include "gcode.h"
-//#include "funcs.ino"
 #include "defs.h"
+//#include "funcs.ino"
 
 // Setup hardware objects
-//stepper step(STEP1,STEP2,STEP3,STEP4);
 AccelStepper stepper(AccelStepper::FULL4WIRE,STEP1,STEP2,STEP3,STEP4);
 imu mpu;
 ServoEasing tiltServo;
@@ -67,16 +54,14 @@ void setup() {
     tiltServo.write(initAngle);
     tiltServo.easeTo(initAngle);
 
-
+    // Initialize Serial Connection
     DataSerial.begin(BAUDRATE);
     DataSerial.flush();
-    // Search for verification string
+    // Search for incoming data
     while (DataSerial.available() == 0) {}
     String val = DataSerial.readStringUntil('\n');
     DataSerial.flush();
     DataSerial.println("ok");
-
-    lastImuUpdateTime_ms = millis();
 
     // Setup stepper with default params
     stepper.setCurrentPosition(0);
@@ -85,6 +70,7 @@ void setup() {
 
     DataSerial.println(F("Configuration successful, entering main loop"));
     t0_ms = millis();
+    lastImuUpdateTime_ms = millis();
 }
 
 void loop() {
@@ -105,7 +91,7 @@ void loop() {
         switch (scanState) {
             case 0: {
                 // Reset target to zero yaw, zero pitch
-                resetStepperPos(currTurretYawAngleDeg);
+                resetStepperPos(stepper, currTurretYawAngleDeg);
                 stepper.moveTo(0);
                 tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
                 lastImuUpdateTime_ms = millis();
@@ -115,7 +101,7 @@ void loop() {
             case 1 : {
                 // If reached target, set yaw target to scan width
                 if (stepper.distanceToGo() == 0) {
-                    resetStepperPos(currTurretYawAngleDeg);
+                    resetStepperPos(stepper, currTurretYawAngleDeg);
                     stepper.moveTo(scanTargetYaw);
                     lastImuUpdateTime_ms = millis();
                     scanState = 2;
@@ -125,7 +111,7 @@ void loop() {
             case 2 : {
                 // If reached target, set yaw target to scan width in other direction
                 if (stepper.distanceToGo() == 0) {
-                    resetStepperPos(currTurretYawAngleDeg);
+                    resetStepperPos(stepper, currTurretYawAngleDeg);
                     stepper.moveTo(-scanTargetYaw);
                     lastImuUpdateTime_ms = millis();
                     scanState = 1;
@@ -137,10 +123,11 @@ void loop() {
 
     // Update stepper position from IMU data every so often
     if (lastImuUpdateTime_ms + IMU_UPDATE_DELAY_MS > millis()) {
-        resetStepperPos(currTurretYawAngleDeg);
+        resetStepperPos(stepper, currTurretYawAngleDeg);
         lastImuUpdateTime_ms = millis();
     }
 
+    // Respond to serial command
     if (respondToSerial(receivedChars,rcvIdx)) {
         if (DO_PRINT_DEBUG){
           DebugSerial.print("Received: ");
@@ -177,9 +164,9 @@ void loop() {
                         // Overwrite current pos
                         gcode_command_floats gcode(args);
                         if(gcode.com_exists('x'))
-                            resetStepperPos(yawAngle2Steps(gcode.fetch('x')));
+                            resetStepperPos(stepper, yawAngle2Steps(gcode.fetch('x')));
                         if(!gcode.com_exists('x'))
-                            resetStepperPos(0);
+                            resetStepperPos(stepper, 0);
                         
                         break;
                     }
@@ -222,7 +209,7 @@ void loop() {
                     case 3: {
                         // Set speed params
                         gcode_command_floats gcode(args);
-                        setStepperParams(gcode.fetch('a'), gcode.fetch('b'));
+                        setStepperParams(stepper, gcode.fetch('a'), gcode.fetch('b'));
                         tiltServo.setSpeed(gcode.fetch('d'));
                         break;
                     }
@@ -254,26 +241,7 @@ void loop() {
     
 }
 
-// Reset current stepper internal position to account for any missed steps
-void resetStepperPos(double yawAngleDeg) {
-    long currPos = stepper.currentPosition();
 
-    // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
-    long currStepIdx = currPos % 4;
-    long newStepIdx = yawAngle2Steps(yawAngleDeg) % 4;
-    long newPos = yawAngle2Steps(yawAngleDeg) + currStepIdx - newStepIdx;
-
-    long currTarget = stepper.targetPosition();
-    float currSpeed = stepper.speed();
-    stepper.setCurrentPosition(newPos);
-    stepper.setSpeed(currSpeed);
-    stepper.moveTo(currTarget);
-}
-
-void setStepperParams(double newMaxSpeed, double newAccel) {
-    if (newMaxSpeed != NOVALUE) stepper.setMaxSpeed(newMaxSpeed);
-    if (newAccel != NOVALUE) stepper.setAcceleration(newAccel);
-}
 
 // Convert servo angle to turret angle
 double servoAngle2TurretAngle(double servoAngleDeg) {

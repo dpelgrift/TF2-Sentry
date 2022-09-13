@@ -71,6 +71,27 @@ void parse_int(String inpt, char &cmd, int32_t &value)
   value = temp_arg_char.toFloat();
 }
 
+// Reset current stepper internal position to account for any missed steps
+void resetStepperPos(AccelStepper& stepper, double yawAngleDeg) {
+    long currPos = stepper.currentPosition();
+
+    // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
+    long currStepIdx = currPos % 4;
+    long newStepIdx = yawAngle2Steps(yawAngleDeg) % 4;
+    long newPos = yawAngle2Steps(yawAngleDeg) + currStepIdx - newStepIdx;
+
+    long currTarget = stepper.targetPosition();
+    float currSpeed = stepper.speed();
+    stepper.setCurrentPosition(newPos);
+    stepper.setSpeed(currSpeed);
+    stepper.moveTo(currTarget);
+}
+
+void setStepperParams(AccelStepper& stepper, double newMaxSpeed, double newAccel) {
+    if (newMaxSpeed != NOVALUE) stepper.setMaxSpeed(newMaxSpeed);
+    if (newAccel != NOVALUE) stepper.setAcceleration(newAccel);
+}
+
 
 // Solve for angles in 4-bar linkage
 double convertLinkageAngle(double inputAngleDeg, double A, double B, double C, double D)
