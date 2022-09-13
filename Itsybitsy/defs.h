@@ -7,14 +7,14 @@
 #define STEP4 13
 #define INTERRUPT_PIN 2
 
-// Physical position params
+// Linkage measurements
 #define SERVOSHAFT_X -75.7
 #define SERVOSHAFT_Y -34.0
 #define TILTSHAFT_X 0.0
 #define TILTSHAFT_Y 0.0
 #define LIFTER1_LEN 45.0
 #define LIFTER2_LEN 70.0
-#define LIFTERBASE_2_TILTSHAFT_LEN 150.3
+#define LIFTERBASE_2_TILTSHAFT_LEN 149.3
 #define LIFTERBASE_2_TILTSHAFT_RELANGLE_DEG 6.61
 #define SERVO_2_TILTSHAFT_ANGLE 24.19
 #define PITCH_2_TILTANGLE_OFFSET 30.8
