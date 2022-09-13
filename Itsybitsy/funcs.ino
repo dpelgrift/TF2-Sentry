@@ -2,30 +2,30 @@
 #include <Arduino.h>
 #include <algorithm>
 #include <vector>
+#include "AccelStepper.h"
 
-bool respondToSerial(char (&serial_data) [MAX_MSG_LEN])
+bool respondToSerial(char (&serial_data) [MAX_MSG_LEN], uint8_t& index)
 {
-  uint8_t index = 0;
-  if (Serial.available() > 0) {
-    while (Serial.available() > 0) {
-      char newchar = Serial.read();
+  if (DataSerial.available() > 0) {
+    while (DataSerial.available() > 0) {
+      char newchar = DataSerial.read();
       if ((newchar != '\n') and (index < MAX_MSG_LEN)) {
         serial_data[index] = newchar;
         index++;
       }
       else {
-        break;
+        return true;
       }
     }
-    return true;
   }
   return false;
 }
 
-void clear_data(char (&serial_data) [MAX_MSG_LEN]) {
+void clear_data(char (&serial_data) [MAX_MSG_LEN], uint8_t& index) {
   for (uint16_t i = 0; i < MAX_MSG_LEN; i++) {
     serial_data[i] = '\0';
   }
+  index = 0;
 }
 
 void parse_inputs(char serial_data[MAX_MSG_LEN], vector<String> &args) {
@@ -52,9 +52,9 @@ void debug_print_str(String str)
 {
   for (uint16_t i = 0; i < str.length(); i++)
   {
-    Serial.print(str[i]);
+    DebugSerial.print(str[i]);
   }
-  Serial.println();
+  DebugSerial.println();
 }
 
 void parse_int(String inpt, char &cmd, int32_t &value)
@@ -98,8 +98,14 @@ long tiltAngle2Pulse(double angle)
     return map(angleLong,0,18000,TILT_MIN_PULSE,TILT_MAX_PULSE);
 }
 
-// Convert yaw angle (in rads) to number of steps
+// Convert yaw angle (in degrees) to number of steps
 int yawAngle2Steps(double yaw)
 {
     return int(round((yaw/360.0) * double(STEPS_PER_REV)));
+}
+
+// Convert # steps to yaw angle (in degrees)
+double steps2YawAngle(long steps)
+{
+    return double(steps)/STEPS_PER_REV * 360.0;
 }

@@ -10,14 +10,16 @@
 #endif
 
 #include "ServoEasing.h"
-#include "stepper.h"
+//#include "stepper.h"
+#include "AccelStepper.h"
 #include "imu.h"
 #include "gcode.h"
 //#include "funcs.ino"
 #include "defs.h"
 
 // Setup hardware objects
-stepper step(STEP1,STEP2,STEP3,STEP4);
+//stepper step(STEP1,STEP2,STEP3,STEP4);
+AccelStepper stepper(AccelStepper::FULL4WIRE,STEP1,STEP2,STEP3,STEP4);
 imu mpu;
 ServoEasing tiltServo;
 
@@ -40,6 +42,7 @@ int scanTargetYaw = SCAN_YAW_WIDTH_DEG/2.0;
 
 unsigned long t0_ms;
 char receivedChars[MAX_MSG_LEN];
+uint8_t rcvIdx = 0;
 
 char base_cmd;
 int32_t base_value;
@@ -67,32 +70,29 @@ void setup() {
 
     DataSerial.begin(BAUDRATE);
     DataSerial.flush();
-    
     // Search for verification string
-//    while (DataSerial.available() == 0) {}
-//    String val = DataSerial.readStringUntil('\n');
-//    DataSerial.flush();
-//    if (val.startsWith("test")) {
-//        delay(500);
-//        DataSerial.println(F("testing"));
-//    } else if (val.startsWith("marco")) {
-//        DataSerial.println(F("polo"));
-//    }
-//    if (DO_PRINT_DEBUG){
-//        DebugSerial.println(val);
-//    }
+    while (DataSerial.available() == 0) {}
+    String val = DataSerial.readStringUntil('\n');
+    DataSerial.flush();
+    DataSerial.println("ok");
+
+    lastImuUpdateTime_ms = millis();
 
     // Setup stepper with default params
-    step.update_config(STEPS_PER_REV,STEPPER_MAX_SPEED,STEPPER_ACCEL);
+    stepper.setCurrentPosition(0);
+    stepper.setMaxSpeed(STEPPER_MAX_SPEED);
+    stepper.setAcceleration(STEPPER_ACCEL);
 
-    DataSerial.println(F("Configuration successful, entering scanning mode"));
+    DataSerial.println(F("Configuration successful, entering main loop"));
     t0_ms = millis();
-    lastImuUpdateTime_ms = millis();
 }
 
 void loop() {
 
-    bool didStep = step.step_if_needed();
+    // Advance stepper
+    stepper.run();
+
+    // Update current attitude
     mpu.updateCurrTiltYaw(currTurretPitchAngleDeg,currTurretYawAngleDeg);
 
     if (doConfigTiltFlag) {
@@ -105,27 +105,29 @@ void loop() {
         switch (scanState) {
             case 0: {
                 // Reset target to zero yaw, zero pitch
-                step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
-                step.set_rad_target(0.0, NOVALUE);
+                resetStepperPos(currTurretYawAngleDeg);
+                stepper.moveTo(0);
                 tiltServo.startEaseTo(turretAngle2ServoAngle(0.0));
-
+                lastImuUpdateTime_ms = millis();
                 scanState = 1;
                 break;
             }
             case 1 : {
                 // If reached target, set yaw target to scan width
-                if (step.distance_to_go() == 0) {
-                    step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
-                    step.set_rad_target(scanTargetYaw, NOVALUE);
+                if (stepper.distanceToGo() == 0) {
+                    resetStepperPos(currTurretYawAngleDeg);
+                    stepper.moveTo(scanTargetYaw);
+                    lastImuUpdateTime_ms = millis();
                     scanState = 2;
                 }
                 break;
             }
             case 2 : {
                 // If reached target, set yaw target to scan width in other direction
-                if (step.distance_to_go() == 0) {
-                    step.set_current_rads(currTurretYawAngleDeg*DEG_TO_RAD);
-                    step.set_rad_target(-scanTargetYaw, NOVALUE);
+                if (stepper.distanceToGo() == 0) {
+                    resetStepperPos(currTurretYawAngleDeg);
+                    stepper.moveTo(-scanTargetYaw);
+                    lastImuUpdateTime_ms = millis();
                     scanState = 1;
                 }
                 break;
@@ -133,11 +135,28 @@ void loop() {
         }
     }
 
-    if (respondToSerial(receivedChars)) {
+    // Update stepper position from IMU data every so often
+    if (lastImuUpdateTime_ms + IMU_UPDATE_DELAY_MS > millis()) {
+        resetStepperPos(currTurretYawAngleDeg);
+        lastImuUpdateTime_ms = millis();
+    }
+
+    if (respondToSerial(receivedChars,rcvIdx)) {
+        if (DO_PRINT_DEBUG){
+          DebugSerial.print("Received: ");
+          DebugSerial.println(receivedChars);
+        }
         // Parse input into data chunks
         vector<String> args;
         parse_inputs(receivedChars, args);
         parse_int(args[0], base_cmd, base_value);
+
+        clear_data(receivedChars,rcvIdx);
+
+        if (DO_PRINT_DEBUG) {
+          DebugSerial.print("Parsing: ");
+          debug_print_str(args[0]);
+        }
 
         switch (tolower(base_cmd)) {
             case 'g': {
@@ -149,18 +168,18 @@ void loop() {
                         float xpos, ypos, feedrate;
                         gcode_command_floats gcode(args);
                         if(gcode.com_exists('x'))
-                            step.set_rad_target(gcode.fetch('x') * DEG_TO_RAD, gcode.fetch('f'));
+                            stepper.moveTo(yawAngle2Steps(gcode.fetch('x')));
                         if(gcode.com_exists('y'))
-                            tiltServo.startEaseTo(turretAngle2ServoAngle(gcode.fetch('y') * DEG_TO_RAD));
+                            tiltServo.startEaseTo(turretAngle2ServoAngle(gcode.fetch('y')));
                         break;
                     }
                     case 1: {
                         // Overwrite current pos
                         gcode_command_floats gcode(args);
                         if(gcode.com_exists('x'))
-                            step.set_current_rads(gcode.fetch('x') * DEG_TO_RAD);
+                            resetStepperPos(yawAngle2Steps(gcode.fetch('x')));
                         if(!gcode.com_exists('x'))
-                            step.set_current_rads(0);
+                            resetStepperPos(0);
                         
                         break;
                     }
@@ -174,7 +193,7 @@ void loop() {
                         // Set scan mode off & halt in place
                         scanningMode = false;
                         scanState = 0;
-                        step.set_rad_target(step.get_current_rads(),NOVALUE);
+                        stepper.move(0);
                         tiltServo.stop();
                         break;
                     }
@@ -203,7 +222,7 @@ void loop() {
                     case 3: {
                         // Set speed params
                         gcode_command_floats gcode(args);
-                        step.update_config(gcode.fetch('a'), gcode.fetch('b'), gcode.fetch('c'));
+                        setStepperParams(gcode.fetch('a'), gcode.fetch('b'));
                         tiltServo.setSpeed(gcode.fetch('d'));
                         break;
                     }
@@ -220,7 +239,7 @@ void loop() {
                     }
                     case 5: {
                         // Get current yaw velocity
-                        float xvel = step.get_current_vel();
+                        float xvel = steps2YawAngle(stepper.speed());
                         DataSerial.print(xvel, 4);
                         DataSerial.print("\n");
                         break;
@@ -233,6 +252,27 @@ void loop() {
         DataSerial.println("ok");
     }
     
+}
+
+// Reset current stepper internal position to account for any missed steps
+void resetStepperPos(double yawAngleDeg) {
+    long currPos = stepper.currentPosition();
+
+    // Ensure updated position maintains same place in step order (mod(prevPos,4) == mod(newPos,4))
+    long currStepIdx = currPos % 4;
+    long newStepIdx = yawAngle2Steps(yawAngleDeg) % 4;
+    long newPos = yawAngle2Steps(yawAngleDeg) + currStepIdx - newStepIdx;
+
+    long currTarget = stepper.targetPosition();
+    float currSpeed = stepper.speed();
+    stepper.setCurrentPosition(newPos);
+    stepper.setSpeed(currSpeed);
+    stepper.moveTo(currTarget);
+}
+
+void setStepperParams(double newMaxSpeed, double newAccel) {
+    if (newMaxSpeed != NOVALUE) stepper.setMaxSpeed(newMaxSpeed);
+    if (newAccel != NOVALUE) stepper.setAcceleration(newAccel);
 }
 
 // Convert servo angle to turret angle
@@ -284,7 +324,6 @@ int configTiltServo(){
       DataSerial.println(((turretAngle2ServoAngle(-10.0))));
     }
 
-    
     // Try to set tilt to zero
     DataSerial.println(F("Attempting to zero tilt..."));
     tiltServo.easeTo(int(round(turretAngle2ServoAngle(0.0))));

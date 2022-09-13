@@ -12,8 +12,6 @@ void dmpDataReady() {
 }
 
 // IMU Wrapper Struct
-
-
 int imu::init() {
     // Setup mpu6050
     // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -77,20 +75,6 @@ bool imu::updateCurrTiltYaw(double& currTurretPitchAngleDeg, double& currTurretY
         if (currTurretYawAngleDeg > 180.0) currTurretYawAngleDeg -= 360.0;
         else if (currTurretYawAngleDeg <= -180.0) currTurretYawAngleDeg += 360.0;
 
-//        if (DO_PRINT_DEBUG) {
-//            DataSerial.print(F("Millis: "));
-//            DataSerial.println(millis() - t0_ms);
-//
-//            DataSerial.print(F("currTurretYawAngleDeg = "));
-//            DataSerial.print(currTurretYawAngleDeg);
-//            DataSerial.print(F("\tSteps = "));
-//            DataSerial.println(yawAngle2Steps(currTurretYawAngleDeg));
-//
-//            DataSerial.print(F("currTurretPitchAngleDeg = "));
-//            DataSerial.print(currTurretPitchAngleDeg);
-//            DataSerial.print(F("\tServo Angle = "));
-//            DataSerial.println(turretAngle2ServoAngle(currTurretPitchAngleDeg));
-//        }
         return true;
     }
     return false;

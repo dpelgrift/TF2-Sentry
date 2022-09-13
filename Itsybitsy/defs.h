@@ -61,6 +61,6 @@
 #define MAX_MSG_LEN 100
 #define NOVALUE 999999
 
-#define DO_PRINT_DEBUG false
-#define DebugSerial Serial
+#define DO_PRINT_DEBUG true
+#define DebugSerial Serial1
 #define DataSerial Serial1

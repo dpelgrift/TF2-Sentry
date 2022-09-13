@@ -45,4 +45,3 @@ struct stepper {
     uint32_t last_step_us = 0;
     uint32_t next_step_us = 0;
 };
-
