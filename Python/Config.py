@@ -67,13 +67,14 @@ wTargetCenter = videoResolution[0]/2
 horizFov = 124
 vertFov = 93
 
-onTargetPixelProximity = 20
+onTargetDegProximity = 5
 scaleFactor = 1.2
 minNeighbors = 5
 
 """ MISC """
 doTurnLaserOn = True
-spoolDownDelay = 5
+numFramesToLoseLock = 3
+scanResetDelay = 5
 scanSoundPlayInterval = 5
 updateRateSec = 0.2
 

@@ -109,7 +109,8 @@ class CameraDriver(object):
 
         else:
             # Otherwise, get the target closest to center of frame
-            midPoint = np.around(np.array(cfg.videoResolution)/2)
+            # midPoint = np.around(np.array(cfg.videoResolution)/2)
+            midPoint = np.array([cfg.wTargetCenter, cfg.hTargetCenter])
             targetArray = np.array(fullBodyTargets)
             
             numTargets = targetArray.shape[0]

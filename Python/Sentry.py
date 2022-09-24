@@ -10,8 +10,6 @@ from TestSuite import *
 from AudioPlayer import *
 
 
-
-
 class Sentry(object):
     def __init__(self):
         # Create audio player object & play startup tone
@@ -28,8 +26,6 @@ class Sentry(object):
         else:
             self.verifySerial()
 
-
-
         cfg.t0 = time.time()
             
         # Create Camera Handler & Verify Connection
@@ -42,22 +38,160 @@ class Sentry(object):
         # if cfg.DEBUG_MODE:
         #     print(f'Image Shape: {ret.shape}')
 
-        # if len(ret.flatten()) == 0:
-        #     self.errorDetected("Camera connection failed")
-        # print("Camera connection successful")
+        ret = self.cam.getFrame()
+
+        if len(ret.flatten()) == 0:
+            self.errorDetected("Camera connection failed")
+        print("Camera connection successful")
 
         self.pitchPid = PID(cfg.kp, cfg.ki, cfg.kd)
         self.yawPid = PID(cfg.kp, cfg.ki, cfg.kd)
 
+    # Sentry state machine
+    # State 0: not locked on, searching for targets/scanning
+    # - Flywheels off, hopper off, pusher off
+    # - Play scan sound regularly
+    # - Transition to state 1 if target detected
+    #   - Turn flywheels on
+    #   - Play spot sound
+    # State 1: locked on, target visible 
+    # - Flywheels on
+    # - Send movement commands to itsy
+    # - Hopper & Pusher on if target close to center of frame
+    # - Transition to state 2 if no target detected for n frames in a row
+    #   - Turn off hopper & pusher
+    # State 2: target lost, trying to reacquire
+    # - Flywheels on, Hopper off, Pusher off
+    # - Transition to state 1 if new target found
+    # - Transition to state 0 if enough time passes without new target
+    #   - Send scan command
     
     def mainLoop(self):
+        # State machine-based main loop
+        r1 = self.motors.initMPU()
+        if not r1:
+            self.errorDetected("MPU Init failed")
+        r2 = self.motors.configTiltServo()
+        if not r1:
+            self.errorDetected("Tilt zero failed")
+
+        sentryState = 0
+        isFiring = False
+        firingTime = 0
+        targetLostTime = 0
+        scanSoundTime = time.time()
+        lastUpdateTime = time.time()
+
+        numEmptyFrames = 0
+
+        currPitch = 0
+        currYaw = 0
+
+        absTargetPitch = 0
+        absTargetYaw = 0
+        
+        if cfg.DO_SCAN:
+            self.motors.startScan()
+
+        while True:
+            # Read any available serial messages
+            resp = self.sd.readSerialLine()
+            while resp != '':
+                if resp != '':
+                    print(f'T: {time.time()-cfg.t0}, ' + resp)
+                resp = self.sd.readSerialLine()
+
+            # Get current attitude
+            currYaw,currPitch = self.motors.getCurrYawPitch()
+
+            bbox, frame = self.cam.findTarget() # Constantly look for targets in view
+
+            # Handle state transitions first
+            if sentryState == 0:
+                if bbox is None: 
+                    # Play scan sound at regular intervals
+                    if time.time() - scanSoundTime > cfg.scanSoundPlayInterval:
+                        playScanSound()
+                        scanSoundTime = time.time()
+                else: # If target detected, transition to state 1
+                    sentryState = 1
+                    playSpotSound()
+                    self.motors.flyWheels.on() # Spool up flywheels
+            elif sentryState == 1:
+                if bbox is not None: # Reset number of concurrent empty frames
+                    numEmptyFrames = 0
+                else:
+                    numEmptyFrames += 1
+
+                # If enough empty frames in a row, transition to state 2
+                if numEmptyFrames > cfg.numFramesToLoseLock:
+                    sentryState = 2
+                    targetLostTime = time.time()
+                    self.motors.stopFiring()
+            elif sentryState == 2:
+                if bbox is not None: # If target detected, transition to state 1
+                    sentryState = 1
+                elif time.time() - targetLostTime > cfg.scanResetDelay: # If long enough time spent without new target, return to state 0
+                    sentryState = 0
+                    self.motors.flyWheels.off()
+                    if cfg.DO_SCAN:
+                        self.motors.startScan()
+
+            # Evaluate state actions
+            if sentryState == 1:
+                if bbox is not None:
+                    if cfg.DISP_FRAME:
+                        self.cam.dispTargetFrame(frame,bbox)
+
+                    h = bbox[1] + int(bbox[3] / 2)
+                    w = bbox[0] + int(bbox[2] / 2)
+
+                    pitchPixErr = cfg.hTargetCenter-h
+                    yawPixErr = cfg.wTargetCenter-w
+
+                    # Compute absolute target position & send to itsy
+                    absTargetPitch, absTargetYaw = self.updateTarget(pitchPixErr,yawPixErr,currPitch,currYaw)
+                    if cfg.DEBUG_MODE:
+                        print('Target Pitch/Yaw: {}, {}'.format(absTargetPitch, absTargetYaw))
+
+                pitchErr = currPitch - absTargetPitch
+                yawErr = currYaw - absTargetYaw
+
+                # If target close enough
+                if abs(pitchErr) < cfg.onTargetDegProximity and \
+                    abs(yawErr) < cfg.onTargetDegProximity:
+                    if not isFiring: # Start firing
+                        self.motors.startFiring()
+                        isFiring = True
+                        firingTime = time.time()
+                    else: # Reverse direction of pusher regularly to clear any jams
+                        if time.time() - firingTime > cfg.pusherReverseDurationSec:
+                            self.motors.reversePusher()
+                            firingTime = time.time()
+                elif isFiring: # stop firing if too far off
+                    self.motors.stopFiring()
+                    isFiring = False
+                    firingTime = None
+
+            # Delay to limit update rate
+            currTime = time.time()
+            if (currTime - lastUpdateTime < cfg.updateRateSec):
+                waitTime = cfg.updateRateSec - (currTime - lastUpdateTime)
+                print(f'T: {time.time() - cfg.t0}, Waiting: {waitTime: .3f} sec')
+                time.sleep(cfg.updateRateSec - (currTime - lastUpdateTime))
+            lastUpdateTime = time.time()
+
+    def mainLoop_old(self):
         # Main function loop
         r1 = self.motors.initMPU()
+        if not r1:
+            self.errorDetected("MPU Init failed")
         r2 = self.motors.configTiltServo()
+        if not r1:
+            self.errorDetected("Tilt zero failed")
 
         firingTime= None
         isFiring = False
-        flyWheelsActive = False
         targetLost = False
         targetLostTime = 0
         scanSoundTime = time.time()
@@ -114,7 +248,7 @@ class Sentry(object):
                     targetLostTime = time.time()
 
                 # If enought time passes without seeing a target, spool down flywheels if they are active & reset lock
-                if time.time() - targetLostTime > cfg.spoolDownDelay and targetLocked:
+                if time.time() - targetLostTime > cfg.spoolDownDelay and targetLost and targetLocked:
                     targetLostTime = time.time()
                     self.motors.flyWheels.off() # Spool down flywheels
 
@@ -194,7 +328,7 @@ class Sentry(object):
         # if cfg.DEBUG_MODE:
         #     print('PITCH: {}\tYAW: {}'.format(pitchMoveDeg, yawMoveDeg))
 
-        return pitchMoveDeg, yawMoveDeg
+        return absTargPitch, absTargYaw
 
     def absMove(self, pitchDeg, yawDeg):
         if pitchDeg < cfg.pitchLimitsDeg[0]:

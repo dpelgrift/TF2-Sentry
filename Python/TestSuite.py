@@ -71,12 +71,12 @@ def testFlywheels(sentry):
 
 
 def sendMove(sentry):
-    yaw = input("Specify relative yaw (degrees): ")
-    tilt = input("Specify relative tilt (degrees): ")
+    yaw = input("Specify absolute yaw (degrees): ")
+    tilt = input("Specify absolute tilt (degrees): ")
     time.sleep(1.0)
     playSpotSound()
     time.sleep(1.0)
-    sentry.relMove(float(tilt),float(yaw))
+    sentry.move(float(tilt),float(yaw))
     # Pass through debug messages from ItsyBitsy
     initTime = time.time()
     while time.time() - initTime < 3:
@@ -88,14 +88,14 @@ def sendMove(sentry):
 
 
 def testMultiCommand(sentry):
-    yaw = input("Specify relative yaw (degrees): ")
-    tilt = input("Specify relative tilt (degrees): ")
+    yaw = input("Specify absolute yaw (degrees): ")
+    tilt = input("Specify absolute tilt (degrees): ")
     numCommands = input("Specify number of commands to send: ")
     time.sleep(1.0)
     playSpotSound()
     time.sleep(0.5)
     for c in range(int(numCommands)):
-        sentry.relMove(float(tilt),float(yaw))
+        sentry.move(float(tilt),float(yaw))
         time.sleep(0.5)
         resp = sentry.sd.readSerialLine()
         while resp != '':
