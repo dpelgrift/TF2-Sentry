@@ -141,11 +141,11 @@ class CameraDriver(object):
     def getFrame(self):
 
         t1 = time.time()
-        frame = np.empty((cfg.videoResolution[0] * cfg.videoResolution[1] * 3),dtype=np.uint8)
-        self.camera.capture(frame, format="bgr",use_video_port=True)
-        frame = frame.reshape((cfg.videoResolution[1],cfg.videoResolution[0],3))
+        # frame = np.empty((cfg.videoResolution[0] * cfg.videoResolution[1] * 3),dtype=np.uint8)
+        self.camera.capture(self.rawCapture, format="bgr",use_video_port=True)
+        # frame = frame.reshape((cfg.videoResolution[1],cfg.videoResolution[0],3))
 
-        # frame = self.rawCapture.array
+        frame = self.rawCapture.array
         # frame = self.camera.capture_array()
         # _,frame = self.capture.read()
         t2 = time.time()
