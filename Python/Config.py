@@ -8,6 +8,7 @@ DISP_FRAME = False
 BYPASS_SERIAL_VERIFY = False
 DO_SCAN = True
 DO_CLEAR_IMGS = False
+LOCK_PITCH = True
 
 """ PATHS """
 audioDir = '~/audio/'

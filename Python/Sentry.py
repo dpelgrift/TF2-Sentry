@@ -101,7 +101,8 @@ class Sentry(object):
             resp = self.sd.readSerialLine()
             while resp != '':
                 if resp != '':
-                    print(f'T: {time.time()-cfg.t0}, ' + resp)
+                    if cfg.DEBUG_MODE:
+                        print(f'T: {time.time()-cfg.t0}, ' + resp)
                 resp = self.sd.readSerialLine()
 
             # Get current attitude
@@ -216,6 +217,10 @@ class Sentry(object):
             # Get current attitude
             currYaw,currPitch = self.motors.getCurrYawPitch()
 
+            if cfg.DEBUG_MODE:
+                t = time.time()-cfg.t0
+                print(f'T: {t}, currPitch:\t{currPitch}\currYaw: {currYaw}')
+
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
             # If no current target
@@ -315,9 +320,9 @@ class Sentry(object):
 
         if cfg.DEBUG_MODE:
             t = time.time()-cfg.t0
-            print(f'T: {t}, pitchPixErr:\t{pitchPixErr}\tyawPixErr: {yawPixErr}\n')
-            print(f'T: {t}, pitchDegErr:\t{pitchDegErr}\tyawDegErr: {yawDegErr}\n')
-            print(f'T: {t}, absTargPitch:\t{absTargPitch}\absTargYaw: {absTargYaw}')
+            print(f'T: {t}, pitchPixErr:\t{pitchPixErr}\tyawPixErr: {yawPixErr}')
+            print(f'T: {t}, pitchDegErr:\t{pitchDegErr}\tyawDegErr: {yawDegErr}')
+            print(f'T: {t}, absTargPitch:\t{absTargPitch}\tabsTargYaw: {absTargYaw}')
 
         if cfg.DISABLE_PID:
             pitchMoveDeg = absTargPitch
@@ -325,6 +330,9 @@ class Sentry(object):
         else:
             pitchMoveDeg = self.pitchPid(pitchDegErr)
             yawMoveDeg = self.yawPid(yawDegErr)
+
+        if cfg.LOCK_PITCH:
+            pitchMoveDeg = 0
 
         self.absMove(pitchMoveDeg,yawMoveDeg)
 
