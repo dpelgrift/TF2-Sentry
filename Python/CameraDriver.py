@@ -93,6 +93,8 @@ class CameraDriver(object):
 
         frame = self.getFrame()
 
+        print(f'In findTarget: frame.shape = {frame.shape}')
+
         fullBodyTargets = self.fullBodyCascade.detectMultiScale(frame,cfg.scaleFactor,cfg.minNeighbors)
 
         # If targets empty, return None
