@@ -76,7 +76,7 @@ def sendMove(sentry):
     time.sleep(1.0)
     playSpotSound()
     time.sleep(1.0)
-    sentry.move(float(tilt),float(yaw))
+    sentry.absMove(float(tilt),float(yaw))
     # Pass through debug messages from ItsyBitsy
     initTime = time.time()
     while time.time() - initTime < 3:
@@ -95,7 +95,7 @@ def testMultiCommand(sentry):
     playSpotSound()
     time.sleep(0.5)
     for c in range(int(numCommands)):
-        sentry.move(float(tilt),float(yaw))
+        sentry.absMove(float(tilt),float(yaw))
         time.sleep(0.5)
         resp = sentry.sd.readSerialLine()
         while resp != '':
