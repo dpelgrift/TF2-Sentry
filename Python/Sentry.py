@@ -379,8 +379,8 @@ if __name__=='__main__':
 
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t','--test_mode', dest='accumulate', action='store_true',
-                        help='sum the integers (default: find the max)')
+    parser.add_argument('-t','--test_mode', action='store_true',default=False,
+                        help='run in testing mode')
 
     args = parser.parse_args()
     
