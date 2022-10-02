@@ -36,10 +36,12 @@ class Sentry(object):
         # ret = self.cam.camera.capture()
         # ret = self.cam.camera.capture_array()
 
-        # if cfg.DEBUG_MODE:
-        #     print(f'Image Shape: {ret.shape}')
+        
 
         ret = self.cam.getFrame()
+
+        if cfg.DEBUG_MODE:
+            print(f'Image Shape: {ret.shape}')
 
         if len(ret.flatten()) == 0:
             self.errorDetected("Camera connection failed")
