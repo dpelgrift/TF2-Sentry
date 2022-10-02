@@ -1,6 +1,7 @@
 from CameraDriver import CameraDriver
 from SerialDevice import *
 import time
+import argparse
 import Config as cfg
 import subprocess as sp
 from simple_pid import PID
@@ -377,12 +378,18 @@ if __name__=='__main__':
         os.makedirs(cfg.vidSaveDir)
 
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t','--test_mode', dest='accumulate', action='store_true',
+                        help='sum the integers (default: find the max)')
+
+    args = parser.parse_args()
+    
     if cfg.DO_CLEAR_IMGS:
         os.system(f'rm -rf {cfg.imgSaveDir}')
         os.system(f'mkdir {cfg.imgSaveDir}')
 
     sen = Sentry()
-    if cfg.TEST_MODE:
+    if args.test_mode:
         testingMode(sen)
     # TODO: Insert code to check for bluetooth controller to enter wrangler mode
     sen.mainLoop()
