@@ -12,7 +12,7 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
-        self.camera = PiCamera(use_video_port=True)
+        self.camera = PiCamera(sensor_mode=7)
         self.rawCapture = PiRGBArray(self.camera)
         self.camera.resolution = cfg.videoResolution
         
@@ -142,7 +142,7 @@ class CameraDriver(object):
 
         t1 = time.time()
         frame = np.empty((cfg.videoResolution[0] * cfg.videoResolution[1] * 3),dtype=np.uint8)
-        self.camera.capture(frame, format="bgr")
+        self.camera.capture(frame, format="bgr",use_video_port=True)
         frame = frame.reshape((cfg.videoResolution[1],cfg.videoResolution[0],3))
 
         # frame = self.rawCapture.array
