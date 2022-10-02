@@ -1,5 +1,5 @@
-# from picamera import PiCamera
-# from picamera.array import PiRGBArray
+from picamera import PiCamera
+from picamera.array import PiRGBArray
 import time
 import os
 import cv2
@@ -12,9 +12,9 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
-        # self.camera = PiCamera()
-        # self.rawCapture = PiRGBArray(self.camera)
-        # self.camera.resolution = cfg.videoResolution
+        self.camera = PiCamera()
+        self.rawCapture = PiRGBArray(self.camera)
+        self.camera.resolution = cfg.videoResolution
         
         self.tlast = time.time()
         self.frameNum = 0
@@ -34,17 +34,17 @@ class CameraDriver(object):
     
     
     def start(self):
-        # pass
+        pass
 
         # config = self.camera.create_preview_configuration(main={"size": cfg.videoResolution, "format": "BGR888"})
         # self.camera.configure(config)
         # self.camera.start()
 
-        self.capture = cv2.VideoCapture(0)
+        # self.capture = cv2.VideoCapture(0)
 
-        w, h = self.resolution
-        self.capture.set(3,w)
-        self.capture.set(4,h) 
+        # w, h = self.resolution
+        # self.capture.set(3,w)
+        # self.capture.set(4,h) 
 
     def stop(self):
         self.capture.release()
@@ -139,12 +139,12 @@ class CameraDriver(object):
         cv2.waitKey(1)
 
     def getFrame(self):
-        # self.camera.capture(self.rawCapture, format="bgr")
-        # frame = self.rawCapture.array
-        # frame = self.camera.capture_array()
 
         t1 = time.time()
-        _,frame = self.capture.read()
+        self.camera.capture(self.rawCapture, format="bgr")
+        frame = self.rawCapture.array
+        # frame = self.camera.capture_array()
+        # _,frame = self.capture.read()
         t2 = time.time()
 
         if cfg.DEBUG_MODE:
@@ -152,7 +152,7 @@ class CameraDriver(object):
 
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # self.rawCapture.truncate(0)
+        self.rawCapture.truncate(0)
 
         if cfg.DISP_FRAME:
             cv2.imshow('rawframes',frame)
