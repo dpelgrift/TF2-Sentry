@@ -108,6 +108,11 @@ class Sentry(object):
             # Get current attitude
             currYaw,currPitch = self.motors.getCurrYawPitch()
 
+            if cfg.DEBUG_MODE:
+                t = time.time()-cfg.t0
+                print(f'T: {t}, currPitch:\t{currPitch}\currYaw: {currYaw}\tsentryState: {sentryState}')
+
+
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
             # Handle state transitions first
@@ -217,10 +222,7 @@ class Sentry(object):
             # Get current attitude
             currYaw,currPitch = self.motors.getCurrYawPitch()
 
-            if cfg.DEBUG_MODE:
-                t = time.time()-cfg.t0
-                print(f'T: {t}, currPitch:\t{currPitch}\currYaw: {currYaw}')
-
+            
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view
 
             # If no current target
