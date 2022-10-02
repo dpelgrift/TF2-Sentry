@@ -12,7 +12,7 @@ class CameraDriver(object):
     def __init__(self, res=cfg.videoResolution):
         self.resolution = res
         self.isEnabled = False
-        self.camera = PiCamera()
+        self.camera = PiCamera(use_video_port=True)
         self.rawCapture = PiRGBArray(self.camera)
         self.camera.resolution = cfg.videoResolution
         
