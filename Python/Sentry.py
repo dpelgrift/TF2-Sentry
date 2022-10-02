@@ -110,7 +110,7 @@ class Sentry(object):
 
             if cfg.DEBUG_MODE:
                 t = time.time()-cfg.t0
-                print(f'T: {t}, currPitch:\t{currPitch}\currYaw: {currYaw}\tsentryState: {sentryState}')
+                print(f'T: {t},\tcurrPitch:{currPitch}\tcurrYaw: {currYaw}\tsentryState: {sentryState}')
 
 
             bbox, frame = self.cam.findTarget() # Constantly look for targets in view

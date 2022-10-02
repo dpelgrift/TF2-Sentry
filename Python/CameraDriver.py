@@ -143,7 +143,12 @@ class CameraDriver(object):
         # frame = self.rawCapture.array
         # frame = self.camera.capture_array()
 
+        t1 = time.time()
         _,frame = self.capture.read()
+        t2 = time.time()
+
+        if cfg.DEBUG_MODE:
+            print(f'Camera read time: {t2-t1}')
 
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
