@@ -148,7 +148,7 @@ class CameraDriver(object):
 
         grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        self.rawCapture.truncate(0)
+        # self.rawCapture.truncate(0)
 
         if cfg.DISP_FRAME:
             cv2.imshow('rawframes',frame)
