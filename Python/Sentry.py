@@ -2,6 +2,8 @@ from CameraDriver import CameraDriver
 from SerialDevice import *
 import time
 import argparse
+import signal
+import sys
 import Config as cfg
 import subprocess as sp
 from simple_pid import PID
@@ -401,6 +403,16 @@ if __name__=='__main__':
         os.system(f'mkdir {cfg.imgSaveDir}')
 
     sen = Sentry()
+
+    # Setup sigterm handler to stop all motors and send zero command on ctrl_C
+    def signal_handler(_signo, _stack_frame):
+        sen.motors.flyWheels.off()
+        sen.motors.stopFiring()
+        sen.motors.zero()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM,signal_handler)
+
     if args.test_mode:
         testingMode(sen)
     # TODO: Insert code to check for bluetooth controller to enter wrangler mode

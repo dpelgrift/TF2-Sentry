@@ -1,14 +1,13 @@
 """ DEBUG """
 t0 = 0
 DEBUG_MODE = True
-TEST_MODE = False
 SAVE_IMGS = True
 SAVE_VID = True
 DISP_FRAME = False
 BYPASS_SERIAL_VERIFY = False
 DO_SCAN = True
-DO_CLEAR_IMGS = False
-LOCK_PITCH = True
+DO_CLEAR_IMGS = True
+LOCK_PITCH = False
 
 """ PATHS """
 audioDir = '../audio/'
@@ -63,6 +62,7 @@ hopperPin = 13
 
 """ CAMERA """
 videoResolution = (768,432)
+# videoResolution = (960,540)
 hTargetCenter = videoResolution[1]/2
 wTargetCenter = videoResolution[0]/2
 
