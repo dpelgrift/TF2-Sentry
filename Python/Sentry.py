@@ -406,11 +406,13 @@ if __name__=='__main__':
 
     # Setup sigterm handler to stop all motors and send zero command on ctrl_C
     def signal_handler(_signo, _stack_frame):
+        print('Shutting down')
         sen.motors.flyWheels.off()
         sen.motors.stopFiring()
         sen.motors.zero()
         sys.exit(0)
 
+    signal.signal(signal.SIGINT,signal_handler)
     signal.signal(signal.SIGTERM,signal_handler)
 
     if args.test_mode:
