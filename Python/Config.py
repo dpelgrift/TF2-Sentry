@@ -11,11 +11,12 @@ DO_CLEAR_IMGS = False
 LOCK_PITCH = True
 
 """ PATHS """
-audioDir = '~/audio/'
-imgSaveDir = '~/imgs/'
-vidSaveDir = '~/vids/'
+audioDir = '../audio/'
+imgSaveDir = '../../imgs/'
+vidSaveDir = '../../vids/'
 
 # cascadeModelPath = 'haarcascade_fullbody.xml' 
+# cascadeModelPath = 'haarcascade_upperbody.xml' 
 cascadeModelPath = 'haarcascade_frontalface_default.xml' 
 
 """ SERIAL PARAMS """
@@ -65,8 +66,8 @@ videoResolution = (768,432)
 hTargetCenter = videoResolution[1]/2
 wTargetCenter = videoResolution[0]/2
 
-horizFov = 124
-vertFov = 93
+horizFov = 90
+vertFov = 50
 
 onTargetDegProximity = 5
 scaleFactor = 1.2
@@ -76,8 +77,8 @@ minNeighbors = 5
 doTurnLaserOn = True
 numFramesToLoseLock = 3
 scanResetDelay = 5
-scanSoundPlayInterval = 5
-updateRateSec = 0.2
+scanSoundPlayInterval = 3
+updateRateSec = 0.1
 
 """ PID PARAMS """
 DISABLE_PID = True

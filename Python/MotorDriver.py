@@ -11,6 +11,9 @@ class MotorDriver(object):
 
         self.pusher = Servo(cfg.pusherPin,min_pulse_width=cfg.pusherMinPwm,max_pulse_width=cfg.pusherMaxPwm)
         self.hopper = Servo(cfg.hopperPin,min_pulse_width=cfg.hopperMinPwm,max_pulse_width=cfg.hopperMaxPwm)
+
+        self.hopper.value = None
+        self.pusher.value = None
         
         self.flyWheels = LED(cfg.flywheelPin)
         self.pusherDirection = 1
